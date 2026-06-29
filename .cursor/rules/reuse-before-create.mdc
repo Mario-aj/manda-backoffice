@@ -1,5 +1,5 @@
 ---
-description: Search the codebase and reuse existing abstractions before adding new ones
+description: Search the backoffice codebase and reuse existing abstractions before adding new ones
 alwaysApply: true
 ---
 
@@ -9,45 +9,74 @@ Before adding a component, hook, utility, or helper, **search the project first*
 
 ## Required workflow
 
-1. **Search** — grep or semantic search for similar names, behavior, or patterns (`hooks/`, `components/`, `lib/`, `utils/`, providers).
-2. **Reuse** — import and use the existing abstraction when it fits (or generalize it if the use case is close).
-3. **Extract** — if the same logic appears in two places, extract to a shared module (e.g. `hooks/use-*.ts`, `lib/*.ts`) and update all call sites.
+1. **Search** — grep or semantic search for similar names, behavior, or patterns under `src/features/`, `src/shared/`, `src/app/`.
+2. **Reuse** — import from the feature's public barrel (`features/auth/index.ts`) or `shared/ui/` when it fits.
+3. **Extract** — if the same logic appears in two places, extract to `shared/` or the owning feature's `hooks/` / `api/`.
 4. **Create new** — only when nothing suitable exists and extraction is not warranted.
 
 ## Where to look
 
-| Need | Check first |
-|------|-------------|
-| React state / effects | `hooks/` |
-| UI building blocks | `components/manda/`, feature folders under `components/` |
-| API / cache / domain | `lib/` |
-| App-wide context | `providers/` |
-| Theme / constants | `constants/` |
+| Need                              | Check first                                                                                           |
+| --------------------------------- | ----------------------------------------------------------------------------------------------------- |
+| Staff auth / session              | `features/auth/` — `useAuth`, guards, `staff-auth.ts`, `staff-storage.ts`                             |
+| App chrome (sidebar, shell)       | `features/shell/components/`                                                                          |
+| UI atoms (buttons, fields, brand) | `shared/ui/` — `PrimaryButton`, `TextField`, `Avatar`, `MandaGlyph`, `MandaWordmark`, `LoadingScreen` |
+| HTTP / errors                     | `shared/api/client.ts`, `shared/api/api-error.ts`                                                     |
+| Design tokens                     | `src/app/global.css` (`--manda-*`), then `shared/theme/manda-theme.ts` for TS-only use                |
+| Route wiring                      | `app/router.tsx`, `app/App.tsx`                                                                       |
+| Query defaults                    | `app/query-client.ts`                                                                                 |
+| Electron / tokens                 | `electron/main.ts`, `electron/preload.ts` — don't duplicate IPC in renderer                           |
+| Visual reference (not copy-paste) | `tmp/manda/screens-backoffice.jsx`, `tmp/manda/brand.jsx`                                             |
+
+## Feature layout
+
+New domain work goes in **`features/<name>/`** with the same internal shape as `auth/` and `shell/`:
+
+```
+features/kyc/
+├── api/
+├── components/
+├── pages/
+└── index.ts          # public exports for app/ and other features
+```
+
+Do **not** import another feature's internal files — use its barrel export or move shared code to `shared/`.
+
+## Styling
+
+- Add or extend a co-located **`*.module.css`** — don't introduce inline `style={{ … }}` for layout/theme.
+- Use existing `--manda-*` CSS variables from `global.css` before adding new hex values.
+- Reuse `shared/ui/` atoms before creating one-off styled elements.
 
 ## Examples
 
 ```tsx
-// ❌ BAD — duplicate keyboard listener in a component
-useEffect(() => {
-  const show = Keyboard.addListener("keyboardDidShow", () => setOpen(true));
-  ...
-}, []);
+// ❌ BAD — duplicate loading UI in a guard
+if (loading) return <div style={{ height: "100vh" }}>A carregar…</div>;
 
-// ✅ GOOD — reuse shared hook
-import { useKeyboardVisible } from "@/hooks/use-keyboard-visible";
-const keyboardVisible = useKeyboardVisible();
+// ✅ GOOD — reuse shared atom
+import { LoadingScreen } from "@/shared/ui/loading-screen";
+if (loading) return <LoadingScreen>A carregar…</LoadingScreen>;
 ```
 
 ```tsx
-// ❌ BAD — new DebounceInput when useDebounce exists
-function MyScreen() { /* inline setTimeout debounce */ }
+// ❌ BAD — raw axios in a feature page
+const res = await axios.get("/staff/auth/me");
 
-// ✅ GOOD
-import { useDebounce } from "@/hooks/use-debounce";
+// ✅ GOOD — feature API + shared client
+import { fetchMe } from "@/features/auth/api/staff-auth";
+```
+
+```tsx
+// ❌ BAD — deep import into another feature's internals
+import { AuthProvider } from "@/features/auth/providers/auth-provider";
+
+// ✅ GOOD — public barrel (when exported)
+import { useAuth } from "@/features/auth";
 ```
 
 ## When generalizing
 
-- Prefer **one flexible hook/utility** over several near-identical copies.
-- Keep the shared API small; add optional params only when a second caller needs them.
-- After extracting, **delete** the inlined duplicate and update imports.
+- Prefer **one flexible component/hook** over near-identical copies.
+- Keep shared APIs small; add optional params only when a second caller needs them.
+- After extracting, delete the inlined duplicate and update imports.

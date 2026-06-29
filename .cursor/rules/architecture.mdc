@@ -1,324 +1,260 @@
 ---
-description: Manda App ADR — stack, routing, auth, API client, theming, and conventions
-globs: "{app,components,lib,providers,hooks,constants}/**/*.{ts,tsx},app.json,tsconfig.json"
+description: Manda Backoffice ADR — Electron stack, feature layout, staff auth, API client, styling, and conventions
+globs: "{src,electron}/**/*.{ts,tsx,css},electron.vite.config.ts,tsconfig.json,package.json"
 alwaysApply: false
 ---
 
-# Manda App — Architecture Decision Record
+# Manda Backoffice — Architecture Decision Record
 
-**Version:** 1.0 — MVP
+**Version:** 1.0 — MVP (auth + shell)
 **Status:** In development
-**Audience:** Engineers, Tech Leads, AI agents working on `manda-app/`
+**Audience:** Engineers and AI agents working on `backoffice/`
 
-> **Scope:** Stack, routing model, auth lifecycle, API client, theming, and conventions for the Manda mobile/web client. Relevant whenever working under `app/**`, `providers/**`, `lib/**`, `components/**`, `hooks/**`, `constants/**`, `app.json`, or `tsconfig.json`.
+> **Scope:** Electron desktop app for Manda staff/ops. Consumes **`/staff/auth/*`** only in this phase — KYC and transactions are deferred. Relevant when working under `src/**`, `electron/**`, or build config.
+
+Workspace-global rules (security, TDD, backend contract) live in `../../AGENTS.md`.
 
 ---
 
 ## 1. Context and Goals
 
-Manda App is the mobile client (iOS / Android / web via `react-native-web`) for the Manda conversational exchange platform. It consumes the `api` REST service and connects to `ws-gateway` over WebSocket for realtime messaging.
+The backoffice is a **desktop Electron app** for internal operations staff — KYC review, transaction monitoring, and related ops workflows (phased). It is **not** the end-user mobile client (`manda-app/`).
 
-| Concern              | Decision                                                |
-| -------------------- | ------------------------------------------------------- |
-| Targets              | iOS, Android, web (Expo Go-compatible during MVP)       |
-| Distribution         | Expo SDK 54 with New Architecture enabled               |
-| Backend coupling     | REST for everything except live messages, WS for stream |
-| Offline strategy     | Deferred — MVP requires connectivity                    |
+| Concern           | Decision                                                                    |
+| ----------------- | --------------------------------------------------------------------------- |
+| Target            | Desktop (Linux / macOS / Windows) via Electron                              |
+| Backend           | `manda` api service on port 3000 — staff JWT namespace (`STAFF_JWT_SECRET`) |
+| Phase C (current) | Staff auth flow + minimal authenticated shell only                          |
+| Deferred          | KYC queue/detail, transaction list/detail, search, ops actions              |
 
 ---
 
 ## 2. Architectural Decisions
 
-| Decision         | Choice                                       | Rationale                                                                      |
-| ---------------- | -------------------------------------------- | ------------------------------------------------------------------------------ |
-| Framework        | Expo SDK 54 · React Native 0.81 · React 19   | Single codebase for iOS/Android/web; `newArchEnabled` on for Fabric/TurboModules |
-| Routing          | `expo-router` 6 with typed routes            | File-based routing; route groups isolate auth vs app shells                    |
-| Server state     | TanStack Query v5                            | Built-in caching, retries, invalidation; pairs cleanly with REST               |
-| HTTP             | Axios with interceptors                      | Request bearer injection + 401-triggered single-flight refresh                 |
-| Secure storage   | `expo-secure-store`                          | Keychain/Keystore-backed token storage; **never AsyncStorage for tokens**      |
-| Theming          | Custom `MANDA` palette + Navigation Theme    | Brand-first; legacy `Colors` retained for `themed-*` primitives                |
-| Fonts            | `@expo-google-fonts/plus-jakarta-sans` (5wt) | Loaded once at root via `useFonts`                                             |
-| Path alias       | `@/*` → project root                         | Avoids deep relatives; enforced by `tsconfig.json`                             |
-| Package manager  | npm                                          | Project-local (the backend monorepo uses pnpm — don't mix)                     |
-| React Compiler   | Enabled (`experiments.reactCompiler`)        | Don't pre-optimize with `useMemo`/`useCallback` unless profiling proves it     |
+| Decision        | Choice                                            | Rationale                                                       |
+| --------------- | ------------------------------------------------- | --------------------------------------------------------------- |
+| Shell           | Electron 39 + electron-vite 4                     | Native desktop; Vite HMR for renderer                           |
+| UI              | React 19 + TypeScript strict                      | Same mental model as mobile client                              |
+| Routing         | `react-router-dom` v7 (`createBrowserRouter`)     | Guards for `/login` vs protected `/`                            |
+| Server state    | TanStack Query v5                                 | Mirrors `manda-app` retry/stale defaults                        |
+| HTTP            | Axios + interceptors in `shared/api/client.ts`    | Single-flight staff refresh on 401                              |
+| Token storage   | Electron `safeStorage` via preload IPC            | OS keychain-backed; renderer never touches raw files            |
+| Styling         | **CSS modules** + `:root` tokens in `global.css`  | No inline `style` except dynamic CSS vars (e.g. avatar palette) |
+| Fonts           | `@fontsource/plus-jakarta-sans` (400/600/700/800) | Loaded in `main.tsx`                                            |
+| Path alias      | `@/*` → `src/*`                                   | Enforced by `tsconfig.json`                                     |
+| Package manager | npm                                               | Backend monorepo uses pnpm — don't mix inside backoffice        |
 
 ---
 
-## 3. Project Layout
+## 3. Project Layout (feature-based)
+
+Code is organized **by feature**, not by technical layer. Cross-cutting code lives in `shared/`; bootstrap and route wiring live in `app/`.
 
 ```
-manda-app/
-├── app/                       # expo-router file-based routes
-│   ├── _layout.tsx            # providers (QueryClient → Auth → Theme) + SplashGate + root Stack
-│   ├── index.tsx              # entry redirect
-│   ├── (auth)/                # public auth group
-│   │   ├── _layout.tsx
-│   │   ├── onboarding.tsx
-│   │   ├── login.tsx
-│   │   ├── register.tsx
-│   │   ├── forgot-password.tsx
-│   │   └── reset-password.tsx
-│   └── (app)/                 # protected app group (Redirect to /(auth)/login when unauthenticated)
-│       ├── _layout.tsx
-│       └── index.tsx
-├── providers/
-│   └── auth-provider.tsx      # AuthContext, bootstrap, login/register/logout mutations
-├── lib/
-│   ├── query-client.ts        # createQueryClient — retry policy, staleTime, no refetchOnFocus
-│   └── api/
-│       ├── client.ts          # axios instance + interceptors + refresh-once concurrency guard
-│       ├── storage.ts         # SecureStore wrapper (authStorage.load/save/clear)
-│       ├── auth.ts            # register / login / fetchMe / logout
-│       └── types.ts           # AuthTokens, User, *Input DTOs, ApiError class
-├── components/
-│   ├── manda/                 # brand primitives: Avatar, MandaGlyph, MandaWordmark,
-│   │                          #                   OtpBoxes, PrimaryButton, Screen, TextField
-│   ├── ui/                    # general primitives: IconSymbol(.ios), Collapsible
-│   ├── themed-text.tsx
-│   ├── themed-view.tsx
-│   ├── haptic-tab.tsx
-│   ├── hello-wave.tsx
-│   ├── parallax-scroll-view.tsx
-│   └── external-link.tsx
-├── hooks/
-│   ├── use-color-scheme.ts (+.web.ts)
-│   └── use-theme-color.ts
-├── constants/
-│   ├── manda-theme.ts         # MANDA palette + MANDA_FONT weight map
-│   └── theme.ts               # Colors (light/dark) + platform-aware Fonts
-├── assets/
-├── scripts/                   # reset-project, etc.
-├── app.json                   # expo config
-├── tsconfig.json              # strict, @/* alias, expo/tsconfig.base
-└── eslint.config.js           # eslint-config-expo
+backoffice/
+├── electron/                          # main + preload (not under src/)
+│   ├── main.ts                        # BrowserWindow, safeStorage IPC handlers
+│   └── preload.ts                     # exposes window.staffStorage
+├── electron.vite.config.ts
+├── src/
+│   ├── main.tsx                       # renderer entry
+│   ├── index.html
+│   ├── app/                           # composition only — no feature logic
+│   │   ├── App.tsx                    # QueryClient → AuthProvider → SplashGate → Router
+│   │   ├── router.tsx                 # route table + guards
+│   │   ├── query-client.ts
+│   │   └── global.css                 # :root design tokens (--manda-*)
+│   ├── shared/
+│   │   ├── theme/manda-theme.ts       # TS palette (prefer CSS vars for styling)
+│   │   ├── ui/                        # design-system atoms (*.tsx + *.module.css)
+│   │   └── api/                       # axios client, ApiError
+│   └── features/
+│       ├── auth/                      # staff login/session
+│       │   ├── api/                   # staff-auth.ts, types.ts
+│       │   ├── storage/               # staff-storage.ts (IPC wrapper)
+│       │   ├── providers/             # auth-provider.tsx
+│       │   ├── components/            # guards, login-form, splash-gate
+│       │   ├── pages/                 # login-page
+│       │   └── index.ts               # public exports (useAuth, guards, LoginPage)
+│       └── shell/                     # authenticated chrome (sidebar, topbar, home)
+│           ├── components/
+│           └── pages/
+└── .env.example                       # VITE_API_URL
 ```
+
+### Feature boundary rules
+
+| Rule                       | Detail                                                                                                      |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| Feature owns its domain    | Each `features/<name>/` folder owns `api/`, `components/`, `pages/`, `providers/`, `hooks/` as needed       |
+| No cross-feature internals | e.g. `features/shell/` imports `useAuth` from `features/auth/index.ts` — not deep paths into auth internals |
+| `shared/` is generic       | Tokens, UI atoms, HTTP infra — no KYC/transaction/staff business rules                                      |
+| `app/` wires only          | Providers, router — no forms, no API calls                                                                  |
+| Future features            | `features/kyc/`, `features/transactions/` added in later phases with the same layout                        |
 
 ---
 
-## 4. Routing Model
+## 4. Electron Security (non-negotiable)
 
-Three route groups under `app/`:
+| Control           | Implementation                                                                             |
+| ----------------- | ------------------------------------------------------------------------------------------ |
+| Context isolation | `contextIsolation: true`, `nodeIntegration: false`                                         |
+| Renderer sandbox  | `sandbox: true` in `webPreferences`                                                        |
+| Preload surface   | Only `window.staffStorage.load/save/clear` — no raw `fs`/`process` in renderer             |
+| Token persistence | Main process encrypts with `safeStorage` → `userData/staff-tokens.json` (mode `0600`)      |
+| Dev on Linux      | `npm run dev` uses `--noSandbox` (electron-vite) when setuid chrome-sandbox is unavailable |
+| Production API    | `VITE_API_URL` must be `https://` — enforced at boot in `shared/api/client.ts`             |
 
-| Group       | Auth requirement                                          | Purpose                                     |
-| ----------- | --------------------------------------------------------- | ------------------------------------------- |
-| `index.tsx` | none                                                      | Bootstrap landing → redirect by auth status |
-| `(auth)/`   | public (no guard)                                         | Onboarding, login, register, password reset |
-| `(app)/`    | guarded — `<Redirect href="/(auth)/login" />` if unauth   | Authenticated experience                    |
+---
 
-**Root `_layout.tsx` provider order (top-down):**
+## 5. Routing Model
+
+| Path     | Guard                                                 | Page                         |
+| -------- | ----------------------------------------------------- | ---------------------------- |
+| `/login` | `GuestGuard` → redirect to `/` if authenticated       | `LoginPage`                  |
+| `/`      | `AuthGuard` → redirect to `/login` if unauthenticated | `HomePage` inside `AppShell` |
+| `*`      | —                                                     | redirect to `/`              |
+
+**Provider order in `App.tsx`:**
 
 ```
 QueryClientProvider
   └── AuthProvider
-       └── ThemeProvider
-            └── SplashGate           // blocks render until AuthProvider.bootstrapped
-                 └── <Stack>
-                      ├── <Stack.Screen name="index" />
-                      ├── <Stack.Screen name="(auth)" />
-                      └── <Stack.Screen name="(app)" />
+       └── SplashGate          // blocks until bootstrapped
+            └── RouterProvider
 ```
-
-`SplashGate` calls `SplashScreen.hideAsync()` only after `bootstrapped === true`, so the splash stays up while SecureStore is read.
 
 ---
 
-## 5. Auth Lifecycle
+## 6. Staff Auth Lifecycle
 
-`providers/auth-provider.tsx` exposes `useAuth()`:
+`features/auth/providers/auth-provider.tsx` exposes `useAuth()`:
 
 ```ts
 {
   status: "loading" | "unauthenticated" | "authenticated",
-  user: User | null,
+  staff: StaffProfile | null,
   bootstrapped: boolean,
   loginMutation,
-  registerMutation,
   logoutMutation,
 }
 ```
 
-**Bootstrap → status flow:**
+**Flow:**
 
-```
-1. Mount → authStorage.load() reads SecureStore
-2. Set hasTokens + bootstrapped
-3. /auth/me query runs only when bootstrapped && hasTokens
-   (retry: false, staleTime: 60s)
-4. Derive status:
-   - !bootstrapped                       → "loading"
-   - bootstrapped && !hasTokens          → "unauthenticated"
-   - meQuery.isSuccess                   → "authenticated"
-   - meQuery.isError                     → "unauthenticated"
-   - otherwise                           → "loading"
-```
-
-**Register flow** sequences `register → login` so the caller lands in a uniform authenticated state.
-
-**Auth-lost listener** — the axios client invokes `authLostListener` when a refresh attempt fails. The provider uses it to clear `hasTokens` and drop the `me` query, which forces a redirect to `(auth)`.
+1. Bootstrap — `staffStorage.load()` via preload IPC on mount
+2. `/staff/auth/me` query — enabled when `bootstrapped && hasTokens`; `retry: false`, `staleTime: 60s`
+3. Status — `loading` until bootstrap; `unauthenticated` if no tokens or `me` errored; `authenticated` on success
+4. Auth-lost listener — axios client calls back on refresh failure → clear tokens + drop `me` query
+5. Login — `login` → save tokens → invalidate `me`
+6. Logout — best-effort `POST /staff/auth/logout` → `staffStorage.clear()`
 
 ---
 
-## 6. API Client (`lib/api/client.ts`)
+## 7. API Client (`shared/api/client.ts`)
 
-### 6.1 Base URL resolution
+### Endpoints (staff namespace)
 
-| Source                                                 | Used when                              |
-| ------------------------------------------------------ | -------------------------------------- |
-| `EXPO_PUBLIC_API_URL`                                  | Explicit override                      |
-| `Constants.expoConfig.hostUri` (or `debuggerHost`)     | Metro is running (dev)                 |
-| `10.0.2.2:3000`                                        | Android emulator without `hostUri`     |
-| `localhost:3000`                                       | Last-resort fallback                   |
+| Call    | Method | Path                  | Notes                                          |
+| ------- | ------ | --------------------- | ---------------------------------------------- |
+| login   | POST   | `/staff/auth/login`   | no bearer                                      |
+| me      | GET    | `/staff/auth/me`      | staff JWT                                      |
+| refresh | POST   | `/staff/auth/refresh` | bare `refreshClient`, no interceptor recursion |
+| logout  | POST   | `/staff/auth/logout`  | bearer + `{ refreshToken }`                    |
 
-Port is **3000** (matches `api`).
+### Interceptor rules
 
-### 6.2 Request interceptor
+- Skip Bearer on `/staff/auth/login` and `/staff/auth/refresh`
+- On 401 (non-auth route, not retried): `refreshOnce()` → retry original request
+- Refresh failure: `staffStorage.clear()` + `authLostListener()`
+- Rejections normalize to `ApiError(message, status, body?)` — display Portuguese API messages directly
 
-Attaches `Authorization: Bearer <accessToken>` from SecureStore on every request **except** `/auth/login`, `/auth/register`, `/auth/refresh`.
+### Base URL
 
-### 6.3 Response interceptor (401 → refresh → retry)
-
-```
-on 401 (non-auth endpoint, not already retried):
-  refreshPromise ??= refreshOnce()        // single-flight guard
-  tokens = await refreshPromise
-  if tokens: retry original with new bearer
-  else:      authStorage.clear() + authLostListener()
-```
-
-- `refreshOnce()` uses a **separate `refreshClient` axios instance** that never goes through the response interceptor — eliminates recursion if refresh itself returns 401.
-- All rejections normalize to `ApiError(message, status, body?)`. Message preference: API body `message` → axios `error.message` → `"Erro de rede. Tente novamente."`.
-
-### 6.4 Error contract
-
-```ts
-class ApiError extends Error {
-  status: number;
-  body?: ApiErrorBody;     // { statusCode, error, message, timestamp, path }
-}
-```
-
-API messages are **Portuguese** — display `ApiError.message` directly unless localization is requested. Mobile/native clients are not subject to CORS; auth is enforced via Bearer regardless.
+`VITE_API_URL` from `.env` (default `http://localhost:3000`). Dev CORS: ensure `http://localhost:5173` is in api `CORS_ORIGINS`.
 
 ---
 
-## 7. TanStack Query Defaults (`lib/query-client.ts`)
+## 8. Token Storage
 
-```ts
-queries: {
-  staleTime: 30_000,
-  refetchOnWindowFocus: false,
-  retry: (n, err) =>
-    !(err instanceof ApiError && err.status >= 400 && err.status < 500)
-    && n < 2,
-}
-mutations: { retry: false }
-```
+| Layer                                               | Responsibility                                                     |
+| --------------------------------------------------- | ------------------------------------------------------------------ |
+| Main (`electron/main.ts`)                           | Encrypt/decrypt with `safeStorage`; read/write `staff-tokens.json` |
+| Preload (`electron/preload.ts`)                     | `contextBridge.exposeInMainWorld('staffStorage', …)`               |
+| Renderer (`features/auth/storage/staff-storage.ts`) | `load/save/clear` calling `window.staffStorage`                    |
 
-Rule of thumb: **never retry 4xx** (auth failure, validation), retry transient (5xx / network) up to 2×, focus-driven refetches are off for mobile.
+Keys are distinct from end-user mobile: encrypted payload holds `accessToken` + `refreshToken`. **Never** persist tokens in `localStorage`, `sessionStorage`, or React state.
 
 ---
 
-## 8. Secure Storage (`lib/api/storage.ts`)
+## 9. Styling
 
-| Key                          | Contents              |
-| ---------------------------- | --------------------- |
-| `manda.auth.accessToken`     | JWT access (HS256)    |
-| `manda.auth.refreshToken`    | Opaque refresh        |
-
-API: `authStorage.load() / save({ accessToken, refreshToken }) / clear()`. `load()` returns `null` if **either** token is missing — partial state is treated as unauthenticated.
-
-> **Hard rule:** tokens live in SecureStore only. Never AsyncStorage, MMKV, files, or component state.
-
----
-
-## 9. Theming and Brand
-
-### 9.1 Palette (`constants/manda-theme.ts`)
-
-`MANDA` exports brand greens (`green`, `greenDeep`, `greenInk`, `greenSoft`, `greenMint`, `greenBright`), neutrals (`white`, `paper`, `cardBorder`, `divider`, `ink`, `inkMuted`, `inkSubtle`), status (`warn`, `warnSoft`, `danger`, `dangerSoft`), and bubble colors (`bubbleMe`, `bubbleMeInk`, `bubbleThem`, `bubbleThemInk`). Use these for brand surfaces.
-
-`MANDA_FONT` maps semantic weights to font family names: `regular | medium | semiBold | bold | extraBold`.
-
-### 9.2 Legacy theme (`constants/theme.ts`)
-
-`Colors.light / Colors.dark` + platform-aware `Fonts` exist for `themed-text` / `themed-view`. Prefer `MANDA` for new components; keep `Colors` only where existing primitives already depend on it.
-
-### 9.3 Canonical primitives
-
-`components/manda/*` is the canonical library: `Screen`, `PrimaryButton`, `TextField`, `OtpBoxes`, `Avatar`, `MandaGlyph`, `MandaWordmark`. **Reach for these before introducing new primitives.**
+| Rule                | Detail                                                                                                |
+| ------------------- | ----------------------------------------------------------------------------------------------------- |
+| CSS modules         | Co-located `*.module.css` per component/page                                                          |
+| Design tokens       | `:root { --manda-green: … }` in `src/app/global.css` — use `var(--manda-*)` in modules                |
+| No inline styles    | Avoid `style={{ … }}` for layout/theme; exception: dynamic CSS custom properties (avatar hash colors) |
+| Shared atoms        | `shared/ui/` — `PrimaryButton`, `TextField`, `Avatar`, `MandaGlyph`, `MandaWordmark`, `LoadingScreen` |
+| Prototype reference | `tmp/manda/screens-backoffice.jsx` for visual intent (not copy-paste JSX styles)                      |
 
 ---
 
-## 10. Conventions
+## 10. TanStack Query Defaults (`app/query-client.ts`)
 
-- **File naming:** kebab-case for files (`auth-provider.tsx`, `manda-theme.ts`); route group folders in `(parens)`.
-- **Imports:** prefer `@/...` over deep relative paths.
-- **Strict TypeScript:** fix type errors at the source, don't `as any`.
-- **No business logic in route files** — keep `app/*.tsx` thin; push logic into `providers/`, `lib/`, hooks.
-- **All HTTP via `lib/api/*`** — never raw `fetch`/`axios` in components.
-- **Error display:** show `ApiError.message` directly (Portuguese from API).
-- **React Compiler is on** — don't pre-emptively wrap with `useMemo` / `useCallback`. Add them only when profiling shows a measured regression.
-- **Cleartext HTTP** is allowed on Android in dev (`usesCleartextTraffic: true` in `app.json`). Production uses HTTPS via Cloudflare Tunnel.
+Same policy as mobile: **never retry 4xx**, retry transient errors up to 2×, `refetchOnWindowFocus: false`, mutations `retry: false`.
 
 ---
 
-## 11. Run / Build
+## 11. Conventions
+
+- **File naming:** kebab-case (`auth-provider.tsx`, `login-page.module.css`)
+- **Imports:** prefer `@/...` over deep relatives
+- **Strict TypeScript:** fix at source, no `as any`
+- **No business logic in route files** — keep `app/router.tsx` thin; logic in features
+- **All HTTP via `shared/api` + feature `api/`** — never raw `fetch`/`axios` in components
+- **Error display:** show `ApiError.message` (Portuguese from API)
+- **Tests:** Vitest in `src/**/*.spec.ts`; UI-only changes use explicit manual checklist when no harness exists
+
+---
+
+## 12. Run / Build
 
 ```bash
-cd manda-app
-npm install
-npm start                          # expo start
-npm run ios                        # iOS simulator
-npm run android                    # Android emulator
-npm run web                        # web (react-native-web, static output)
-npm run lint                       # eslint-config-expo
+# Terminal 1 — backend
+cd manda && docker compose up postgres redis api
 
-# Override the API base when auto-detection doesn't fit (e.g. physical device on LAN):
-EXPO_PUBLIC_API_URL=http://192.168.1.10:3000 npm start
+# Terminal 2 — seed staff (once)
+STAFF_SEED_EMAIL=admin@manda.ao STAFF_SEED_PASSWORD='…' pnpm --filter api staff:seed
+
+# Terminal 3 — backoffice
+cd backoffice && npm install && npm run dev
 ```
 
----
+```bash
+npm test          # vitest
+npm run build     # electron-vite production build
+npm run preview   # preview packaged renderer + electron
+```
 
-## 12. Mobile ↔ Backend Contract (quick reference)
-
-| Concern        | Mobile                                                | Backend (`api` / `ws-gateway`)             |
-| -------------- | ----------------------------------------------------- | ------------------------------------------ |
-| Auth header    | `Authorization: Bearer <accessToken>`                 | api validates HS256 + jti denylist         |
-| Refresh        | `POST /auth/refresh { refreshToken }` (single-flight) | rotates + reuse-detects via `family_id`    |
-| Logout         | `POST /auth/logout { refreshToken }` + SecureStore clear | revokes refresh family + access jti     |
-| WebSocket auth | `Sec-WebSocket-Protocol: bearer.<accessToken>`        | ws-gateway validates via `@manda/shared`   |
-| Heartbeat      | ping every 30s while connected                        | ws-gateway responds with pong              |
-| Error payload  | parsed into `ApiError { message, status, body }`      | `{ statusCode, error, message, ... }` PT   |
+Ensure `manda/.env` has `STAFF_JWT_SECRET` (32+ chars, distinct from `JWT_SECRET`).
 
 ---
 
 ## 13. Deferred to Post-MVP
 
-| Feature                            | Trigger to introduce                                       |
-| ---------------------------------- | ---------------------------------------------------------- |
-| Offline message queue + outbox     | When users frequently lose connectivity mid-conversation   |
-| Push notifications (APNs / FCM)    | After backend Notification service ships                   |
-| Background sync                    | Once offline queue exists                                  |
-| E2E tests (Maestro / Detox)        | After core flows stabilise                                 |
-| EAS Build / OTA updates            | When moving off Expo Go for distribution                   |
-| Localization (i18n) beyond PT      | When non-PT markets are targeted                           |
-| Dark-mode-first redesign of MANDA  | When dark mode becomes a product priority                  |
+| Feature                     | Phase                             |
+| --------------------------- | --------------------------------- |
+| KYC queue + detail          | `features/kyc/`                   |
+| Transaction list + detail   | `features/transactions/`          |
+| Global search               | shell topbar                      |
+| MFA / staff password reset  | backend + UI when endpoints exist |
+| Code signing / auto-update  | production distribution           |
+| E2E (Playwright / Spectron) | after core flows stabilise        |
 
 ---
 
-## 14. Glossary
+## 14. Revision History
 
-- **Bootstrap** — initial async load of SecureStore tokens before the UI is allowed to render.
-- **SplashGate** — wrapper that keeps the native splash visible until bootstrap finishes.
-- **Single-flight refresh** — guarantee that at most one `/auth/refresh` is in flight at a time; concurrent 401s await the same `refreshPromise`.
-- **Auth-lost listener** — callback the axios client invokes when refresh fails, letting the AuthProvider clear state and trigger a redirect.
-- **Route group** — `expo-router` folder in parens (`(auth)`, `(app)`) that scopes a stack without contributing to the URL.
-- **New Architecture** — Fabric renderer + TurboModules; enabled via `newArchEnabled: true` in `app.json`.
-
----
-
-## 15. Revision History
-
-| Version | Date       | Change                                                                                                       |
-| ------- | ---------- | ------------------------------------------------------------------------------------------------------------ |
-| 1.0     | 2026-05-13 | Initial ADR — Expo SDK 54, expo-router groups, TanStack Query v5, axios refresh, SecureStore, MANDA palette. |
+| Version | Date       | Change                                                                                       |
+| ------- | ---------- | -------------------------------------------------------------------------------------------- |
+| 1.0     | 2026-06-28 | Initial backoffice ADR — Electron, feature layout, staff auth, CSS modules, safeStorage IPC. |

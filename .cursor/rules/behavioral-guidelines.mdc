@@ -1,5 +1,5 @@
 ---
-description: Manda App behavioral guidelines — security-first coding posture for a financial app
+description: Manda Backoffice behavioral guidelines — security-first posture for staff desktop app
 alwaysApply: true
 ---
 
@@ -11,119 +11,85 @@ Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-s
 
 **Order of precedence:** Security First (§1) overrides everything else. Simplicity, surgical changes, and shipping speed never justify weakening a security control.
 
+Workspace-global security and TDD rules: `../../AGENTS.md`.
+
 ## 1. Security First — non-negotiable
 
-**This is a financial application. Security is the highest-priority correctness criterion, ahead of features, performance, and ergonomics. A working feature with a security flaw is not done — it is broken.**
+**Manda is a financial application.** The backoffice handles staff sessions for ops on user data and money-adjacent workflows. Security is the highest-priority correctness criterion.
 
-Before writing or modifying any code that touches authentication, authorization, money, balances, user data, tokens, sessions, deep links, or external I/O — **stop and threat-model**:
+Before writing or modifying code that touches authentication, authorization, staff roles, audit-sensitive actions, tokens, or external I/O — **stop and threat-model**:
 
-- What's the trust boundary? Who controls the input? What happens if it's malicious?
-- Is this screen/action reachable by an unauthenticated user? Is that intentional?
-- Could a user reach data, balances, or chats that aren't theirs? (IDOR / BOLA)
-- What gets logged or sent to a crash reporter? Could it leak a token or PII?
-- Are tokens stored where they belong? Is the transport encrypted?
+- What's the trust boundary between renderer, preload, and main?
+- Is this route/action reachable without a valid staff JWT?
+- Could a staff token be confused with an end-user JWT? (They must remain isolated — different secrets, `aud: staff`.)
+- What gets logged? Could it leak a token, password, or PII?
+- Are tokens stored only in the main-process vault?
 
 ### 1.1 Hard rules — never violate
 
-- **Never log secrets, JWTs, refresh tokens, passwords, full card numbers, CVVs, or PII** — not even in dev. Log identifiers (`userId`, `requestId`), not contents.
-- **Never persist tokens outside `expo-secure-store`.** No AsyncStorage, MMKV, Redux, files, query cache, or component state. This is a hard line.
-- **Never commit secrets.** `.env*`, key files, signing certs, Expo tokens stay out of git.
-- **Never trust the client itself.** Backend authorization is the truth — frontend checks are UX only. Hidden buttons are not access control.
-- **Never invent crypto.** SecureStore is Keychain/Keystore-backed; use it. Don't roll your own encryption or token format.
-- **Never bypass HTTPS in production.** Cleartext is dev-only (`usesCleartextTraffic` Android flag).
-- **Never hand-roll the `Authorization` header in components.** The axios interceptor is the only injection point.
-- **Never call `/auth/refresh` directly from a component.** The single-flight guard in `lib/api/client.ts` is the only path — bypassing it can stampede the backend and corrupt the refresh family.
-- **Never auto-act on a deep link (`mandaapp://`) for a sensitive operation.** Deep links are untrusted input — show confirmation UI before transferring value, changing credentials, or revealing data.
-- **Never use `Math.random()`** for IDs, nonces, or anything that influences auth or state ownership. Use `crypto.randomUUID()` or backend-issued IDs.
+- **Never log secrets, JWTs, refresh tokens, passwords, or PII** — not even in dev. Log staff ids and request ids, not contents.
+- **Never persist staff tokens in `localStorage`, `sessionStorage`, IndexedDB, or React state.** Tokens live in Electron `safeStorage` via preload IPC only.
+- **Never commit secrets.** `.env*`, tunnel tokens, signing certs stay out of git.
+- **Never trust the renderer.** Backend `StaffJwtAuthGuard` + `StaffRolesGuard` are the truth; UI guards are UX only.
+- **Never expose Node APIs to the renderer.** No `nodeIntegration`, no widening preload beyond `staffStorage`.
+- **Never hand-roll the `Authorization` header in components.** The axios interceptor in `shared/api/client.ts` is the only injection point.
+- **Never call `/staff/auth/refresh` from a component.** Use the single-flight guard in `shared/api/client.ts`.
+- **Never bypass HTTPS in production.** `VITE_API_URL` must be `https://` — boot fails otherwise.
+- **Never use `Math.random()`** for tokens, IDs, or nonces.
 
 ### 1.2 Posture
 
-- **Default deny on routes.** New screens under `(app)/` inherit the auth guard; do not duplicate or weaken it. New unauthenticated screens go under `(auth)/` and are reviewed.
-- **Minimal token surface.** Touch tokens only inside `lib/api/storage.ts` and `lib/api/client.ts`. Components and screens should never see raw tokens.
-- **Validate before you trust API data.** When server shape is uncertain (new endpoint, optional field), narrow with type guards — don't `as User`.
-- **Error display.** Show `ApiError.message` (Portuguese from API). Never echo raw stack traces, response bodies, or token fragments into the UI.
-- **Crash reporters and analytics** must scrub headers, request bodies, and response bodies before sending. If a reporter is added, configure redaction in the same PR.
-- **Clipboard / screenshots / share intents** can leak sensitive content — opt out (`secureTextEntry`, `FLAG_SECURE`, etc.) on screens that show balances, tokens, or recovery info.
-- **Dependencies are supply chain.** Each new package is a new trust assumption. Prefer the Expo SDK, the standard library, or what's already installed.
+- **Default deny on routes.** Protected paths use `AuthGuard`; public login uses `GuestGuard`. New ops screens go behind `AuthGuard` and need backend role checks when implemented.
+- **Minimal token surface.** Renderer touches tokens only through `features/auth/storage/staff-storage.ts` and the axios client. Components never read raw JWT strings.
+- **Validate API data.** Narrow unknown shapes with type guards — don't `as StaffProfile`.
+- **Error display.** Show `ApiError.message` (Portuguese). Never echo stack traces, response bodies, or token fragments in the UI.
+- **IPC is a trust boundary.** Preload exposes exactly `load/save/clear` — no arbitrary channels, no passing tokens through query strings or URLs.
+- **Dependencies are supply chain.** Prefer what's already installed; justify new packages.
 
-### 1.3 Frontend-specific (manda-app)
+### 1.3 Backoffice-specific
 
-- Tokens live **only** in SecureStore under `manda.auth.accessToken` / `manda.auth.refreshToken`. Partial state (one token missing) = unauthenticated.
-- The axios request interceptor skips `/auth/login`, `/auth/register`, `/auth/refresh` — preserve that exclusion; bearer leakage on those endpoints can leak a stale token to logs.
-- Refresh uses a **separate bare axios client** (`refreshClient`) so a 401 on refresh cannot recurse. Don't merge it into the main client.
-- WebSocket handshake auth is `Sec-WebSocket-Protocol: bearer.<accessToken>` — the only path. Don't put the token in a URL query string (it lands in logs and history).
-- TanStack Query is configured to **never retry 4xx**. If you tighten or loosen retry, do not introduce auth-loop bugs: a 401 must NOT be retried by the query, only by the axios refresh interceptor (once).
-- Inputs that hit the API (`TextField`, `OtpBoxes`) get UX validation only — the backend re-validates. Don't skip backend round-trips because "the form already checked it."
+- Staff tokens use **`STAFF_JWT_SECRET`** on the backend — distinct from end-user `JWT_SECRET`. A mobile user JWT must return 401 on `/staff/auth/me`.
+- Axios request interceptor skips `/staff/auth/login` and `/staff/auth/refresh` — preserve that exclusion.
+- Refresh uses a **separate bare client** (`refreshClient`) so a 401 on refresh cannot recurse through the response interceptor.
+- TanStack Query is configured to **never retry 4xx**. A 401 on `/staff/auth/me` must not loop — only the axios refresh interceptor retries once.
+- Form validation on login is UX only — backend validates credentials and returns uniform Portuguese errors.
+- **CSS / XSS:** Prefer CSS modules over inline HTML; sanitize any future rich-text or user-generated content before rendering.
 
 ### 1.4 When in doubt
 
-Stop and surface the question. A 10-minute conversation about whether a screen needs the auth guard is infinitely cheaper than an incident. Security questions are never "premature optimization."
+Stop and surface the question. Security questions are never "premature optimization."
 
 ## 2. Think Before Coding
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
-
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
+- State assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them — don't pick silently.
+- If a simpler approach exists, say so.
+- If something is unclear, stop and ask.
 
 ## 3. Simplicity First
 
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
+- Minimum code that solves the problem. Nothing speculative.
 - No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
+- No features beyond what was asked.
 
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-> Simplicity never overrides §1. "Simpler" code that bypasses the axios interceptor or stashes a token in component state is not simpler — it's broken.
+> Simplicity never overrides §1. Storing a token in `localStorage` to "simplify" auth is broken, not simpler.
 
 ## 4. Surgical Changes
 
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
+- Touch only what you must. Match existing style.
+- Don't refactor unrelated code.
+- Remove imports/variables your changes made unused.
 
 ## 5. Goal-Driven Execution
 
-**Define success criteria. Loop until verified.**
+Transform tasks into verifiable goals. Per workspace rules (`../../AGENTS.md` §1.6): **Plan → Tests → Implementation**.
 
-Transform tasks into verifiable goals:
+- Backend-facing changes: unit/e2e tests in `manda/services/api`
+- Backoffice logic: Vitest (`src/**/*.spec.ts`) when a harness exists
+- UI-only: explicit manual verification checklist before claiming done
 
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
-
-For security-sensitive work, success criteria **must include** a negative test: an unauthenticated user hitting the screen, an expired token, a denied refresh, a malformed deep link — and a verification that the app handles it without leaking state.
+For security-sensitive work, include a **negative test**: unauthenticated request, wrong role, expired token, or refresh failure — and verify rejection.
 
 ---
 
-**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, clarifying questions come before implementation rather than after mistakes, and no security control is ever quietly weakened to ship faster.
+**These guidelines are working if:** diffs stay focused, security controls are never quietly weakened, and staff tokens never appear outside the safeStorage vault path.
