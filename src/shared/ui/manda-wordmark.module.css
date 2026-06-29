@@ -1,0 +1,21 @@
+.wordmark {
+  --wordmark-size: 28px;
+  --wordmark-color: var(--manda-ink);
+  font-weight: 800;
+  font-size: var(--wordmark-size);
+  letter-spacing: calc(var(--wordmark-size) * -0.035);
+  color: var(--wordmark-color);
+  line-height: 1;
+}
+
+.size24 {
+  --wordmark-size: 24px;
+}
+
+.light {
+  --wordmark-color: var(--manda-white);
+}
+
+.dot {
+  color: var(--manda-green);
+}

@@ -1,0 +1,27 @@
+.button {
+  height: 52px;
+  padding: 0 22px;
+  border-radius: 26px;
+  background: var(--manda-green);
+  color: var(--manda-white);
+  border: none;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: -0.2px;
+  cursor: pointer;
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--manda-green) 19%, transparent);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.buttonFull {
+  width: 100%;
+}
+
+.button:disabled {
+  background: #c4d2cb;
+  cursor: default;
+  box-shadow: none;
+}

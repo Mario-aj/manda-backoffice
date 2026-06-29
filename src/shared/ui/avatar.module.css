@@ -1,0 +1,23 @@
+.avatar {
+  --avatar-size: 44px;
+  width: var(--avatar-size);
+  height: var(--avatar-size);
+  border-radius: 50%;
+  background: var(--avatar-bg);
+  color: var(--avatar-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: calc(var(--avatar-size) * 0.38);
+  letter-spacing: -0.3px;
+  flex-shrink: 0;
+}
+
+.size36 {
+  --avatar-size: 36px;
+}
+
+.size38 {
+  --avatar-size: 38px;
+}

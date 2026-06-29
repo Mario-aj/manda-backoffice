@@ -1,0 +1,19 @@
+.shell {
+  height: 100vh;
+  display: flex;
+  background: var(--manda-paper);
+}
+
+.mainColumn {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 24px 26px;
+}

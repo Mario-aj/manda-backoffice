@@ -1,0 +1,51 @@
+.topbar {
+  height: 64px;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--manda-divider);
+  background: var(--manda-white);
+  display: flex;
+  align-items: center;
+  padding: 0 26px;
+  gap: 16px;
+}
+
+.title {
+  flex: 1;
+  font-size: 19px;
+  font-weight: 800;
+  color: var(--manda-ink);
+  letter-spacing: -0.4px;
+}
+
+.search {
+  width: 280px;
+  height: 38px;
+  border-radius: 10px;
+  background: var(--manda-paper);
+  display: flex;
+  align-items: center;
+  padding: 0 13px;
+  gap: 9px;
+  font-size: 13.5px;
+  color: var(--manda-ink-subtle);
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.searchIcon {
+  flex-shrink: 0;
+  color: var(--manda-ink-subtle);
+}
+
+.searchIconCircle {
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+}
+
+.searchIconLine {
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  fill: none;
+}

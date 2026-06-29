@@ -1,0 +1,691 @@
+// Manda — Transaction flow screens
+// Authoritative math is ALWAYS in Kz. The foreign leg (USD/EUR) is agreed
+// metadata + proof; Manda never charges fee or escrow on the foreign leg.
+// Only the SELLER proposes; the BUYER accepts/rejects. Kz escrow is a
+// transitory hold that pays straight out to the seller's bank. No wallet.
+//
+// Example deal: 200 USD @ 875 → base 175.000 Kz
+//   Total fee (1%)............ 1.750 Kz
+//   Buyer 0,5% (added)........ 875 Kz  → buyer pays 175.875 Kz
+//   Seller 0,5% (deducted).... 875 Kz  → seller receives 174.125 Kz
+//   Timer: 15 min (→ 30 min once BOTH sides have sent)
+
+// ──────────────────────────────────────────────────────────────
+// Transaction status vocabulary (T8) — badge + tone per state
+// ──────────────────────────────────────────────────────────────
+const TX_STATUS = {
+  proposta:  { label: 'proposta enviada',   bg: MANDA.warnSoft,   fg: MANDA.warn,      dot: MANDA.warn },
+  aguarda:   { label: 'aguarda aceitação',  bg: MANDA.warnSoft,   fg: MANDA.warn,      dot: MANDA.warn },
+  curso:     { label: 'em curso',           bg: MANDA.green,      fg: '#fff',          dot: '#fff' },
+  confirmar: { label: 'a Manda confirma',   bg: '#E7EEF5',        fg: '#1A4F6E',       dot: '#1A4F6E' },
+  payout:    { label: 'payout pendente',    bg: '#E7EEF5',        fg: '#1A4F6E',       dot: '#1A4F6E' },
+  disputa:   { label: 'em disputa',         bg: MANDA.dangerSoft, fg: MANDA.danger,    dot: MANDA.danger },
+  reembolso: { label: 'em reembolso',       bg: MANDA.dangerSoft, fg: MANDA.danger,    dot: MANDA.danger },
+  concluida: { label: 'concluída',          bg: MANDA.greenSoft,  fg: MANDA.greenDeep, dot: MANDA.green },
+  rejeitada: { label: 'rejeitada',          bg: MANDA.paper,      fg: MANDA.inkMuted,  dot: MANDA.inkSubtle },
+  expirada:  { label: 'proposta expirada',  bg: MANDA.paper,      fg: MANDA.inkMuted,  dot: MANDA.inkSubtle },
+  cancelada: { label: 'cancelada',          bg: MANDA.paper,      fg: MANDA.inkMuted,  dot: MANDA.inkSubtle },
+};
+
+function StatusBadge({ status = 'curso' }) {
+  const s = TX_STATUS[status] || TX_STATUS.curso;
+  return (
+    <div style={{ padding: '4px 9px', borderRadius: 9, background: s.bg, color: s.fg, fontFamily: MANDA.font, fontSize: 11, fontWeight: 800, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+      <span style={{ width: 6, height: 6, borderRadius: 3, background: s.dot }} /> {s.label}
+    </div>);
+
+}
+
+// Shared step-tracker
+function StepRail({ steps, current, role }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      {steps.map((s, i) => {
+        const done = i < current;
+        const active = i === current;
+        const future = i > current;
+        const dotBg = done ? MANDA.green : MANDA.white;
+        const dotBorder = done ? MANDA.green : active ? MANDA.green : MANDA.cardBorder;
+        return (
+          <div key={i} style={{ display: 'flex', gap: 12, alignItems: 'stretch' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 24 }}>
+              <div style={{
+                width: 24, height: 24, borderRadius: 12, background: dotBg,
+                border: `2px solid ${dotBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: active ? `0 0 0 4px ${MANDA.greenSoft}` : 'none',
+                flexShrink: 0
+              }}>
+                {done ? Icon.check(14, '#fff') :
+                <div style={{ fontFamily: MANDA.font, fontSize: 11, fontWeight: 800, color: active ? MANDA.green : MANDA.inkSubtle }}>{i + 1}</div>}
+              </div>
+              {i < steps.length - 1 &&
+              <div style={{ flex: 1, width: 2, background: done ? MANDA.green : MANDA.divider, marginTop: 2, marginBottom: 2 }} />}
+            </div>
+            <div style={{ flex: 1, paddingBottom: i < steps.length - 1 ? 14 : 0 }}>
+              <div style={{ fontFamily: MANDA.font, fontSize: 13.5, fontWeight: 800, color: future ? MANDA.inkSubtle : MANDA.ink, lineHeight: 1.25 }}>{s.title}</div>
+              <div style={{ fontFamily: MANDA.font, fontSize: 12, color: future ? MANDA.inkSubtle : MANDA.inkMuted, marginTop: 2, lineHeight: 1.35 }}>{s.sub}</div>
+              {active && s.actionLabel &&
+              <div style={{ marginTop: 2, fontFamily: MANDA.font, fontSize: 11, color: MANDA.green, fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+                  ↓ Sua acção
+                </div>}
+              {active && s.manda &&
+              <div style={{ marginTop: 4, fontFamily: MANDA.font, fontSize: 11, color: '#1A4F6E', fontWeight: 800, textTransform: 'uppercase', letterSpacing: 0.4, display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                  ⏳ Com a Manda · sem limite para si
+                </div>}
+            </div>
+          </div>);
+
+      })}
+    </div>);
+
+}
+
+const BUYER_STEPS = [
+{ title: 'Você envia Kz para o escrow Manda', sub: 'Transfira 175.875 Kz para a conta da plataforma.', actionLabel: 'paguei' },
+{ title: 'Manda confirma a recepção', sub: 'A Manda confirma a entrada do valor (verificação manual).', manda: true },
+{ title: 'Vendedor envia USD para você', sub: 'Maria transfere 200 USD para a sua conta BAI.' },
+{ title: 'Você confirma o recebimento', sub: 'Ao confirmar, a Manda transfere os Kz ao vendedor.' }];
+
+
+const SELLER_STEPS = [
+{ title: 'Comprador envia Kz para o escrow', sub: 'Aguardamos a transferência de 175.875 Kz do João.' },
+{ title: 'Manda confirma a recepção', sub: 'Verificação manual da entrada — sem limite de tempo para si.', manda: true },
+{ title: 'Você envia 200 USD para o comprador', sub: 'Transfira para o BAI do João e anexe o comprovativo.', actionLabel: 'enviei' },
+{ title: 'Comprador confirma o recebimento', sub: 'O João confirma que recebeu os 200 USD.' },
+{ title: 'Manda transfere os Kz para o seu banco', sub: '174.125 Kz enviados para o seu BAI (payout final).', manda: true }];
+
+
+// ──────────────────────────────────────────────────────────────
+// Proof-of-payment upload — sensitive document, NOT a chat photo (T4/G6)
+// ──────────────────────────────────────────────────────────────
+function ProofUpload({ attached, label = 'Anexar comprovativo' }) {
+  if (attached) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', borderRadius: 12, background: MANDA.greenSoft, border: `1px solid #CFE8DA` }}>
+        <div style={{ width: 40, height: 40, borderRadius: 9, background: MANDA.white, border: `1px solid ${MANDA.cardBorder}`, display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative', flexShrink: 0 }}>
+          {Icon.shield(20, MANDA.greenDeep)}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: MANDA.font, fontSize: 13, fontWeight: 800, color: MANDA.greenDeep, display: 'flex', alignItems: 'center', gap: 6 }}>
+            comprovativo.jpg {Icon.lock(13, MANDA.greenDeep)}
+          </div>
+          <div style={{ fontFamily: MANDA.font, fontSize: 11.5, color: MANDA.greenDeep, opacity: 0.8 }}>Documento seguro · anexado às 14:33</div>
+        </div>
+        <span style={{ fontFamily: MANDA.font, fontSize: 11.5, color: MANDA.greenDeep, fontWeight: 800 }}>Trocar</span>
+      </div>);
+
+  }
+  return (
+    <button style={{
+      width: '100%', display: 'flex', alignItems: 'center', gap: 12, padding: '12px 12px',
+      borderRadius: 12, background: MANDA.white, border: `1.5px dashed ${MANDA.green}`,
+      textAlign: 'left', cursor: 'pointer'
+    }}>
+      <div style={{ width: 40, height: 40, borderRadius: 9, background: MANDA.greenSoft, color: MANDA.greenDeep, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        {Icon.camera(20, MANDA.greenDeep)}
+      </div>
+      <div style={{ flex: 1 }}>
+        <div style={{ fontFamily: MANDA.font, fontSize: 13.5, fontWeight: 800, color: MANDA.ink }}>{label}</div>
+        <div style={{ fontFamily: MANDA.font, fontSize: 11.5, color: MANDA.inkMuted, marginTop: 1 }}>Foto ou PDF do recibo · obrigatório</div>
+      </div>
+      {Icon.plus(20, MANDA.green)}
+    </button>);
+
+}
+
+function ProofNote() {
+  return (
+    <div style={{ marginTop: 8, fontFamily: MANDA.font, fontSize: 11, color: MANDA.inkSubtle, lineHeight: 1.4, display: 'flex', gap: 6 }}>
+      {Icon.shield(14, MANDA.inkSubtle)}
+      <span>O comprovativo é prova e ajuda na reconciliação. <b style={{ color: MANDA.inkMuted }}>Não liberta dinheiro sozinho</b> — a Manda confirma pelo extrato real.</span>
+    </div>);
+
+}
+
+// ──────────────────────────────────────────────────────────────
+// 1) Seller proposes (T1) — compose-proposal sheet
+// ──────────────────────────────────────────────────────────────
+function ScreenOpenTransaction() {
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: 'rgba(6, 38, 24, .55)' }}>
+      <div style={{ position: 'absolute', inset: 0, opacity: .25 }}>
+        <ScreenChat1to1 />
+      </div>
+
+      <div style={{
+        position: 'absolute', left: 0, right: 0, bottom: 0,
+        background: MANDA.white, borderTopLeftRadius: 28, borderTopRightRadius: 28,
+        padding: '12px 22px 30px', maxHeight: '94%', overflow: 'auto',
+        boxShadow: '0 -12px 30px rgba(0,0,0,.18)'
+      }}>
+        <div style={{ width: 38, height: 4, background: MANDA.divider, borderRadius: 2, margin: '0 auto 12px' }} />
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 12, background: MANDA.greenSoft, color: MANDA.greenDeep, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icon.exchange(20, MANDA.greenDeep)}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: MANDA.font, fontSize: 18, fontWeight: 800, color: MANDA.ink, letterSpacing: -0.4 }}>Nova proposta</div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 12.5, color: MANDA.inkMuted, marginTop: 1 }}>Você vende a <b>João Cangola</b></div>
+          </div>
+        </div>
+
+        {/* Seller-only notice */}
+        <div style={{ marginTop: 14, padding: '9px 12px', borderRadius: 12, background: MANDA.greenSoft, display: 'flex', alignItems: 'center', gap: 8, fontFamily: MANDA.font, fontSize: 12, color: MANDA.greenDeep, fontWeight: 600, lineHeight: 1.35 }}>
+          {Icon.shield(15, MANDA.greenDeep)}
+          Só o vendedor abre a proposta. Você é o vendedor — o João aceita ou rejeita.
+        </div>
+
+        {/* Amount card */}
+        <div style={{ marginTop: 12, padding: 16, borderRadius: 18, border: `1.5px solid ${MANDA.cardBorder}` }}>
+          <div style={{ fontFamily: MANDA.font, fontSize: 12, color: MANDA.inkMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Você vende</div>
+          <div style={{ display: 'flex', alignItems: 'baseline', gap: 8, marginTop: 6 }}>
+            <span style={{ fontFamily: MANDA.font, fontSize: 38, fontWeight: 800, color: MANDA.ink, fontVariantNumeric: 'tabular-nums', letterSpacing: -1.5 }}>200</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 10, background: MANDA.greenSoft, color: MANDA.greenDeep, fontFamily: MANDA.font, fontWeight: 800, fontSize: 14 }}>
+              USD <svg width="10" height="6" viewBox="0 0 10 6"><path d="M1 1l4 4 4-4" stroke={MANDA.greenDeep} strokeWidth="1.8" fill="none" strokeLinecap="round" /></svg>
+            </div>
+          </div>
+
+          <div style={{ height: 1, background: MANDA.divider, margin: '14px 0' }} />
+
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div>
+              <div style={{ fontFamily: MANDA.font, fontSize: 12, color: MANDA.inkMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Câmbio</div>
+              <div style={{ fontFamily: MANDA.font, fontSize: 18, fontWeight: 800, color: MANDA.ink, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>875 <span style={{ fontSize: 12, color: MANDA.inkMuted, fontWeight: 600 }}>Kz / USD</span></div>
+              <div style={{ fontFamily: MANDA.font, fontSize: 11.5, color: MANDA.green, fontWeight: 700, marginTop: 2 }}>Acordado entre as partes</div>
+            </div>
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ fontFamily: MANDA.font, fontSize: 12, color: MANDA.inkMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Comprador paga</div>
+              <div style={{ fontFamily: MANDA.font, fontSize: 18, fontWeight: 800, color: MANDA.ink, fontVariantNumeric: 'tabular-nums', marginTop: 4 }}>175.875 <span style={{ fontSize: 12, color: MANDA.inkMuted, fontWeight: 600 }}>Kz</span></div>
+            </div>
+          </div>
+        </div>
+
+        {/* Banks */}
+        <div style={{ marginTop: 12, padding: 14, borderRadius: 16, border: `1.5px solid ${MANDA.cardBorder}`, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {Icon.bank(20, MANDA.greenDeep)}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: MANDA.font, fontSize: 12, color: MANDA.inkMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Onde recebe os Kz</div>
+              <div style={{ fontFamily: MANDA.font, fontSize: 14, color: MANDA.ink, fontWeight: 700, marginTop: 2 }}>BAI · IBAN ····5612</div>
+            </div>
+            {Icon.chevronRight(16, MANDA.inkSubtle)}
+          </div>
+          <div style={{ height: 1, background: MANDA.divider }} />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            {Icon.bank(20, MANDA.greenDeep)}
+            <div style={{ flex: 1 }}>
+              <div style={{ fontFamily: MANDA.font, fontSize: 12, color: MANDA.inkMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>De onde envia os USD</div>
+              <div style={{ fontFamily: MANDA.font, fontSize: 14, color: MANDA.ink, fontWeight: 700, marginTop: 2 }}>Wise USD · ····8821</div>
+            </div>
+            {Icon.chevronRight(16, MANDA.inkSubtle)}
+          </div>
+          <div style={{ fontFamily: MANDA.font, fontSize: 11, color: MANDA.inkSubtle, lineHeight: 1.4 }}>
+            A conta de destino é sua. Para receber numa conta de terceiro é preciso <span style={{ color: MANDA.green, fontWeight: 700 }}>consentimento registado</span>.
+          </div>
+        </div>
+
+        {/* Fee breakdown — 0,5% / 0,5% */}
+        <div style={{ marginTop: 12, padding: 14, borderRadius: 16, background: MANDA.greenSoft }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            {Icon.shield(18, MANDA.greenDeep)}
+            <div style={{ fontFamily: MANDA.font, fontSize: 13, fontWeight: 800, color: MANDA.greenDeep }}>Taxa Manda · 1% no total (sobre os Kz)</div>
+          </div>
+          <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 6, fontFamily: MANDA.font, fontSize: 13 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: MANDA.greenDeep }}>
+              <span>Comprador · 0,5% (acresce)</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>875 Kz</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: MANDA.greenDeep }}>
+              <span><b>Você</b> (vendedor) · 0,5% (desconta)</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums', fontWeight: 700 }}>875 Kz</span>
+            </div>
+            <div style={{ height: 1, background: 'rgba(11,77,47,.15)', margin: '2px 0' }} />
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: MANDA.greenDeep, fontWeight: 800 }}>
+              <span>Comprador paga</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>175.875 Kz</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', color: MANDA.greenDeep, fontWeight: 800 }}>
+              <span>Você recebe</span>
+              <span style={{ fontVariantNumeric: 'tabular-nums' }}>174.125 Kz</span>
+            </div>
+          </div>
+        </div>
+
+        <div style={{ marginTop: 16 }}>
+          <PrimaryButton full size="lg">Enviar proposta</PrimaryButton>
+        </div>
+        <div style={{ textAlign: 'center', marginTop: 10, fontFamily: MANDA.font, fontSize: 11.5, color: MANDA.inkSubtle, lineHeight: 1.45 }}>
+          A proposta expira em 15 min se não for aceite. O câmbio é o acordado entre as partes — a Manda não cota nem calcula sobre os USD.
+        </div>
+      </div>
+    </div>);
+
+}
+
+// ──────────────────────────────────────────────────────────────
+// 2) Proposal received — BUYER accepts/rejects (T2)
+// ──────────────────────────────────────────────────────────────
+function ProposalCard() {
+  return (
+    <div style={{ margin: '4px 12px', borderRadius: 22, background: MANDA.white, border: `1.5px solid ${MANDA.cardBorder}`, overflow: 'hidden', boxShadow: '0 6px 18px rgba(11,77,47,.06)' }}>
+      <div style={{ padding: '14px 16px 12px', background: `linear-gradient(180deg, ${MANDA.warnSoft}, ${MANDA.white})` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 11, background: MANDA.warn, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icon.exchange(20, '#fff')}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: MANDA.font, fontSize: 13, fontWeight: 800, color: MANDA.ink, letterSpacing: 0.4, textTransform: 'uppercase' }}>Proposta · #MND-8147</div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 11.5, color: MANDA.inkMuted }}>Maria propõe vender-lhe 200 USD</div>
+          </div>
+          <StatusBadge status="aguarda" />
+        </div>
+
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ flex: 1, padding: '8px 10px', background: MANDA.white, borderRadius: 12, border: `1px solid ${MANDA.cardBorder}` }}>
+            <div style={{ fontFamily: MANDA.font, fontSize: 10.5, color: MANDA.inkMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Você paga</div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 16, fontWeight: 800, color: MANDA.ink, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>175.875 <span style={{ fontSize: 11, color: MANDA.inkMuted, fontWeight: 600 }}>Kz</span></div>
+          </div>
+          <div style={{ width: 26, height: 26, borderRadius: 13, background: MANDA.green, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-5-5m5 5l-5 5" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <div style={{ flex: 1, padding: '8px 10px', background: MANDA.white, borderRadius: 12, border: `1px solid ${MANDA.cardBorder}` }}>
+            <div style={{ fontFamily: MANDA.font, fontSize: 10.5, color: MANDA.inkMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Você recebe</div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 16, fontWeight: 800, color: MANDA.ink, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>$200,00</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Detail rows */}
+      <div style={{ padding: '12px 16px 4px' }}>
+        {[
+        ['Câmbio acordado', '875 Kz / USD'],
+        ['Sua taxa (0,5%)', '875 Kz · já incluída'],
+        ['Recebe em', 'BAI · IBAN ····5612']].
+        map(([k, v], i) =>
+        <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '5px 0', fontFamily: MANDA.font, fontSize: 12.5 }}>
+            <span style={{ color: MANDA.inkMuted }}>{k}</span>
+            <span style={{ color: MANDA.ink, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>{v}</span>
+          </div>
+        )}
+      </div>
+
+      <div style={{ margin: '6px 14px 12px', padding: '9px 12px', borderRadius: 12, background: MANDA.paper, fontFamily: MANDA.font, fontSize: 11.5, color: MANDA.inkMuted, lineHeight: 1.4, display: 'flex', gap: 6 }}>
+        {Icon.shield(15, MANDA.inkSubtle)}
+        <span>O cronómetro de <b style={{ color: MANDA.ink }}>15 min</b> só começa quando aceitar. Antes disso, sem pressão.</span>
+      </div>
+
+      {/* Accept / reject */}
+      <div style={{ display: 'flex', gap: 10, padding: '0 14px 14px' }}>
+        <button style={{ flex: 1, height: 48, borderRadius: 24, background: MANDA.white, color: MANDA.danger, border: `1.5px solid ${MANDA.dangerSoft}`, fontFamily: MANDA.font, fontWeight: 800, fontSize: 14.5 }}>Rejeitar</button>
+        <PrimaryButton style={{ flex: 1 }} size="md">Aceitar proposta</PrimaryButton>
+      </div>
+    </div>);
+
+}
+
+function ScreenTransactionProposal() {
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: '#F1F5F2', display: 'flex', flexDirection: 'column' }}>
+      <ChatHeader name="Maria Pacheco" sub="@maria.p · proposta recebida" verified />
+      <div style={{ flex: 1, overflow: 'auto', paddingTop: 6, paddingBottom: 8 }}>
+        <DateChip>Hoje · 14:32</DateChip>
+        <Bubble side="them" time="14:30">Combinado então. Vou enviar-te a proposta no Manda, é só aceitares 👍</Bubble>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 14px' }}>
+          <div style={{ background: MANDA.warnSoft, color: MANDA.warn, padding: '5px 12px', borderRadius: 11, fontFamily: MANDA.font, fontSize: 11.5, fontWeight: 700 }}>
+            Maria enviou uma proposta · 14:32
+          </div>
+        </div>
+        <ProposalCard />
+      </div>
+      <ChatComposer />
+    </div>);
+
+}
+
+// ──────────────────────────────────────────────────────────────
+// 3) Active transaction card (buyer / seller)
+// ──────────────────────────────────────────────────────────────
+function TransactionCard({ role = 'buyer', currentStep = 0, status = 'curso' }) {
+  const steps = role === 'buyer' ? BUYER_STEPS : SELLER_STEPS;
+  const headerKz = role === 'buyer' ? '175.875' : '174.125';
+  const headerKzLabel = role === 'buyer' ? 'Você paga' : 'Você recebe';
+
+  return (
+    <div style={{ margin: '4px 12px', borderRadius: 22, background: MANDA.white, border: `1.5px solid ${MANDA.cardBorder}`, overflow: 'hidden', boxShadow: '0 6px 18px rgba(11,77,47,.06)' }}>
+      {/* header */}
+      <div style={{ padding: '14px 16px 12px', background: `linear-gradient(180deg, ${MANDA.greenSoft}, ${MANDA.white})` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <div style={{ width: 34, height: 34, borderRadius: 11, background: MANDA.green, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icon.exchange(20, '#fff')}</div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontFamily: MANDA.font, fontSize: 13, fontWeight: 800, color: MANDA.greenDeep, letterSpacing: 0.4, textTransform: 'uppercase' }}>Transação · #MND-8147</div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 11.5, color: MANDA.inkMuted }}>Aceite às 14:32 · <b style={{ color: MANDA.ink, fontVariantNumeric: 'tabular-nums' }}>12:48</b> restantes</div>
+          </div>
+          <StatusBadge status={status} />
+        </div>
+
+        {/* Amounts row */}
+        <div style={{ marginTop: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ flex: 1, padding: '8px 10px', background: MANDA.white, borderRadius: 12, border: `1px solid ${MANDA.cardBorder}` }}>
+            <div style={{ fontFamily: MANDA.font, fontSize: 10.5, color: MANDA.inkMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>{headerKzLabel}</div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 16, fontWeight: 800, color: MANDA.ink, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>{headerKz} <span style={{ fontSize: 11, color: MANDA.inkMuted, fontWeight: 600 }}>Kz</span></div>
+          </div>
+          <div style={{ width: 26, height: 26, borderRadius: 13, background: MANDA.green, color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12h14m0 0l-5-5m5 5l-5 5" stroke="#fff" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <div style={{ flex: 1, padding: '8px 10px', background: MANDA.white, borderRadius: 12, border: `1px solid ${MANDA.cardBorder}` }}>
+            <div style={{ fontFamily: MANDA.font, fontSize: 10.5, color: MANDA.inkMuted, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>{role === 'buyer' ? 'Você recebe' : 'Você envia'}</div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 16, fontWeight: 800, color: MANDA.ink, fontVariantNumeric: 'tabular-nums', marginTop: 2 }}>$200,00</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Step rail */}
+      <div style={{ padding: '14px 16px' }}>
+        <StepRail steps={steps} current={currentStep} role={role} />
+      </div>
+
+      {/* Active step action zone — buyer pays Kz */}
+      {role === 'buyer' && currentStep === 0 &&
+      <div style={{ margin: '0 14px 12px' }}>
+          <div style={{ padding: 14, borderRadius: 14, background: MANDA.greenInk, color: '#fff' }}>
+            <div style={{ fontFamily: MANDA.font, fontSize: 11.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: MANDA.greenMint }}>Transferir 175.875 Kz para</div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 15, fontWeight: 800, marginTop: 4 }}>Manda Escrow · BAI</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontFamily: MANDA.fontMono, fontSize: 13, color: '#D6F5E3' }}>
+              AO06 0040 0000 7128 3491 0123 4
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 8, background: 'rgba(255,255,255,.12)', color: '#fff', fontFamily: MANDA.font, fontSize: 11, fontWeight: 700, marginLeft: 'auto' }}>{Icon.copy(13, '#fff')} copiar</div>
+            </div>
+            <div style={{ marginTop: 8, padding: '8px 10px', borderRadius: 10, background: 'rgba(255,255,255,.10)', display: 'flex', alignItems: 'center', gap: 8 }}>
+              <div style={{ fontFamily: MANDA.font, fontSize: 11.5, color: 'rgba(255,255,255,.75)' }}>Referência obrigatória</div>
+              <div style={{ marginLeft: 'auto', fontFamily: MANDA.fontMono, fontSize: 15, fontWeight: 700, color: '#fff', letterSpacing: 1 }}>MND8147</div>
+            </div>
+          </div>
+
+          {/* Comprovativo */}
+          <div style={{ marginTop: 10 }}>
+            <ProofUpload attached={false} label="Anexar comprovativo do pagamento" />
+            <ProofNote />
+          </div>
+        </div>
+      }
+
+      {/* Active step action zone — seller sends USD */}
+      {role === 'seller' && currentStep === 2 &&
+      <div style={{ margin: '0 14px 12px' }}>
+          <div style={{ padding: 14, borderRadius: 14, background: MANDA.greenInk, color: '#fff' }}>
+            <div style={{ fontFamily: MANDA.font, fontSize: 11.5, fontWeight: 800, letterSpacing: 0.6, textTransform: 'uppercase', color: MANDA.greenMint }}>Envie 200 USD para</div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 15, fontWeight: 800, marginTop: 4 }}>João C. Domingos · BAI USD</div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4, fontFamily: MANDA.fontMono, fontSize: 13, color: '#D6F5E3' }}>
+              AO06 0040 0000 5612 7790 0099 1
+              <div style={{ display: 'inline-flex', alignItems: 'center', gap: 3, padding: '3px 8px', borderRadius: 8, background: 'rgba(255,255,255,.12)', color: '#fff', fontFamily: MANDA.font, fontSize: 11, fontWeight: 700, marginLeft: 'auto' }}>{Icon.copy(13, '#fff')} copiar</div>
+            </div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 11.5, color: 'rgba(255,255,255,.7)', marginTop: 6 }}>Os Kz do João estão em custódia Manda desde 14:34.</div>
+          </div>
+
+          {/* Comprovativo — attached state */}
+          <div style={{ marginTop: 10 }}>
+            <ProofUpload attached={true} label="Comprovativo da transferência" />
+            <ProofNote />
+          </div>
+        </div>
+      }
+
+      {/* Fee strip — 0,5% each side */}
+      <div style={{ padding: '0 14px 12px' }}>
+        <div style={{ padding: '10px 12px', borderRadius: 12, background: MANDA.paper, display: 'flex', alignItems: 'center', gap: 10 }}>
+          {Icon.shield(18, MANDA.greenDeep)}
+          <div style={{ flex: 1, fontFamily: MANDA.font, fontSize: 12, color: MANDA.inkMuted, lineHeight: 1.35 }}>
+            {role === 'buyer' ?
+            <>Sua taxa: <b style={{ color: MANDA.ink }}>0,5% · 875 Kz</b> · já incluída nos 175.875</> :
+            <>Sua taxa: <b style={{ color: MANDA.ink }}>0,5% · 875 Kz</b> · descontada do Kz liberado</>}
+          </div>
+          <span style={{ fontFamily: MANDA.font, fontSize: 11, color: MANDA.green, fontWeight: 800 }}>Detalhes</span>
+        </div>
+      </div>
+
+      {/* CTA — disabled until proof attached (buyer); enabled (seller, proof attached) */}
+      <div style={{ padding: '0 14px 14px' }}>
+        {role === 'buyer' && currentStep === 0 &&
+        <>
+            <PrimaryButton full size="md" disabled>Já paguei 175.875 Kz</PrimaryButton>
+            <div style={{ textAlign: 'center', marginTop: 8, fontFamily: MANDA.font, fontSize: 11.5, color: MANDA.inkSubtle }}>Anexe o comprovativo para continuar.</div>
+          </>
+        }
+        {role === 'seller' && currentStep === 2 && <PrimaryButton full size="md">Já enviei 200 USD</PrimaryButton>}
+      </div>
+    </div>);
+
+}
+
+function ScreenTransactionBuyer() {
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: '#F1F5F2', display: 'flex', flexDirection: 'column' }}>
+      <ChatHeader name="Maria Pacheco" sub="@maria.p · transação ativa" verified />
+      <div style={{ flex: 1, overflow: 'auto', paddingTop: 6, paddingBottom: 8 }}>
+        <DateChip>Hoje · 14:32</DateChip>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 14px' }}>
+          <div style={{ background: MANDA.greenSoft, color: MANDA.greenDeep, padding: '5px 12px', borderRadius: 11, fontFamily: MANDA.font, fontSize: 11.5, fontWeight: 700 }}>
+            Você aceitou a proposta · cronómetro a contar
+          </div>
+        </div>
+        <TransactionCard role="buyer" currentStep={0} status="curso" />
+      </div>
+      <ChatComposer />
+    </div>);
+
+}
+
+function ScreenTransactionSeller() {
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: '#F1F5F2', display: 'flex', flexDirection: 'column' }}>
+      <ChatHeader name="João Cangola" sub="@joao.cangola · transação ativa" verified />
+      <div style={{ flex: 1, overflow: 'auto', paddingTop: 6 }}>
+        <DateChip>Hoje · 14:37</DateChip>
+        <div style={{ display: 'flex', justifyContent: 'center', padding: '6px 14px' }}>
+          <div style={{ background: MANDA.greenSoft, color: MANDA.greenDeep, padding: '5px 12px', borderRadius: 11, fontFamily: MANDA.font, fontSize: 11.5, fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {Icon.check(14, MANDA.greenDeep)} Manda confirmou 175.875 Kz em custódia · 14:36
+          </div>
+        </div>
+        <TransactionCard role="seller" currentStep={2} status="curso" />
+      </div>
+      <ChatComposer />
+    </div>);
+
+}
+
+// ──────────────────────────────────────────────────────────────
+// Third-party IBAN consent (T6) — registered, not a toggle
+// ──────────────────────────────────────────────────────────────
+function ScreenThirdPartyConsent() {
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: MANDA.paper, display: 'flex', flexDirection: 'column' }}>
+      <StatusSpacer />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 14px 10px', background: MANDA.white, borderBottom: `1px solid ${MANDA.divider}` }}>
+        <button style={{ width: 38, height: 38, borderRadius: 19, border: 'none', background: 'transparent', color: MANDA.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icon.chevronLeft(22)}</button>
+        <div style={{ flex: 1, fontFamily: MANDA.font, fontWeight: 800, fontSize: 16, color: MANDA.ink }}>Conta de terceiro</div>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '18px 18px 8px' }}>
+        <div style={{ width: 52, height: 52, borderRadius: 16, background: MANDA.warnSoft, color: MANDA.warn, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          {Icon.shield(28, MANDA.warn)}
+        </div>
+        <div style={{ fontFamily: MANDA.font, fontSize: 21, fontWeight: 800, color: MANDA.ink, letterSpacing: -0.5, marginTop: 14, textWrap: 'pretty' }}>
+          Esta conta não está em seu nome
+        </div>
+        <div style={{ fontFamily: MANDA.font, fontSize: 14, color: MANDA.inkMuted, marginTop: 8, lineHeight: 1.5 }}>
+          O IBAN de destino pertence a outra pessoa. Para prosseguir, precisamos do seu consentimento explícito — este aceite fica <b style={{ color: MANDA.ink }}>registado de forma imutável</b>.
+        </div>
+
+        {/* Account card */}
+        <div style={{ marginTop: 16, padding: 14, borderRadius: 16, background: MANDA.white, border: `1px solid ${MANDA.cardBorder}` }}>
+          {[
+          ['Titular da conta', 'Joana M. Cangola'],
+          ['Banco', 'BAI · Kwanza (Kz)'],
+          ['IBAN', 'AO06 0040 ···· 9981'],
+          ['Transação', '#MND-8147']].
+          map(([k, v], i) =>
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontFamily: MANDA.font, fontSize: 13.5 }}>
+              <span style={{ color: MANDA.inkMuted }}>{k}</span>
+              <span style={{ color: MANDA.ink, fontWeight: 700, fontFamily: i === 2 ? MANDA.fontMono : MANDA.font }}>{v}</span>
+            </div>
+          )}
+        </div>
+
+        {/* Legal consent */}
+        <div style={{ marginTop: 14, padding: 14, borderRadius: 16, background: MANDA.white, border: `1px solid ${MANDA.cardBorder}`, display: 'flex', gap: 12 }}>
+          <div style={{ width: 24, height: 24, borderRadius: 7, background: MANDA.green, border: `2px solid ${MANDA.green}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L20 7" stroke="#fff" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          </div>
+          <div style={{ fontFamily: MANDA.font, fontSize: 12.5, color: MANDA.ink, lineHeight: 1.5 }}>
+            Autorizo que os Kz desta transação sejam transferidos para a conta de <b>Joana M. Cangola</b>, que não é minha. Declaro conhecer o titular e assumo a responsabilidade por esta indicação.
+          </div>
+        </div>
+
+        <div style={{ marginTop: 12, fontFamily: MANDA.font, fontSize: 11, color: MANDA.inkSubtle, lineHeight: 1.45, display: 'flex', gap: 6 }}>
+          {Icon.lock(14, MANDA.inkSubtle)}
+          <span>Fica registado: quem aceitou, data e hora, conta indicada, transação e o texto deste consentimento.</span>
+        </div>
+      </div>
+
+      <div style={{ padding: '12px 18px 30px', borderTop: `1px solid ${MANDA.divider}`, background: MANDA.white }}>
+        <PrimaryButton full size="md">Confirmar e continuar</PrimaryButton>
+      </div>
+    </div>);
+
+}
+
+// ──────────────────────────────────────────────────────────────
+// Transaction states reference (T8)
+// ──────────────────────────────────────────────────────────────
+function ScreenTransactionStates() {
+  const rows = [
+  ['proposta', 'O vendedor propôs; à espera de chegar ao comprador.'],
+  ['aguarda', 'Proposta entregue; o comprador ainda não respondeu.'],
+  ['curso', 'Aceite. Cronómetro de 15 min a correr sobre o utilizador.'],
+  ['confirmar', 'Bola do lado da Manda (verificação manual). Sem cronómetro contra si.'],
+  ['payout', 'Saída de Kz da Manda para o banco do vendedor.'],
+  ['disputa', 'Uma parte enviou e a janela expirou. Resolvida manualmente por ops.'],
+  ['reembolso', 'Devolução de Kz em curso após cancelamento/disputa.'],
+  ['concluida', 'Ambas confirmaram; payout feito; recibo disponível.'],
+  ['rejeitada', 'O comprador rejeitou a proposta. Podem abrir outra.'],
+  ['expirada', 'A proposta não foi aceite dentro da validade.'],
+  ['cancelada', 'Ninguém pagou aos 15 min, sem disputa.']];
+
+
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: MANDA.paper, display: 'flex', flexDirection: 'column' }}>
+      <StatusSpacer />
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '4px 14px 10px', background: MANDA.white, borderBottom: `1px solid ${MANDA.divider}` }}>
+        <button style={{ width: 38, height: 38, borderRadius: 19, border: 'none', background: 'transparent', color: MANDA.ink, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{Icon.chevronLeft(22)}</button>
+        <div style={{ flex: 1, fontFamily: MANDA.font, fontWeight: 800, fontSize: 16, color: MANDA.ink }}>Estados da transação</div>
+      </div>
+
+      <div style={{ flex: 1, overflow: 'auto', padding: '14px 16px 24px' }}>
+        <div style={{ fontFamily: MANDA.font, fontSize: 12.5, color: MANDA.inkMuted, lineHeight: 1.5, marginBottom: 12 }}>
+          O cartão de transação representa cada estado por um <b style={{ color: MANDA.ink }}>badge + copy</b>. O cronómetro só penaliza acções do utilizador — quando a bola está com a Manda, não corre.
+        </div>
+        <div style={{ background: MANDA.white, borderRadius: 16, border: `1px solid ${MANDA.cardBorder}`, overflow: 'hidden' }}>
+          {rows.map(([k, desc], i) =>
+          <div key={k} style={{ display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px', borderBottom: i < rows.length - 1 ? `1px solid ${MANDA.divider}` : 'none' }}>
+              <div style={{ width: 132, flexShrink: 0 }}><StatusBadge status={k} /></div>
+              <div style={{ fontFamily: MANDA.font, fontSize: 12.5, color: MANDA.inkMuted, lineHeight: 1.4 }}>{desc}</div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>);
+
+}
+
+// ──────────────────────────────────────────────────────────────
+// 4) Done — transaction completed (buyer received USD)
+// ──────────────────────────────────────────────────────────────
+function ScreenTransactionDone() {
+  return (
+    <div style={{ position: 'absolute', inset: 0, background: MANDA.white, display: 'flex', flexDirection: 'column' }}>
+      <StatusSpacer />
+
+      {/* Hero */}
+      <div style={{
+        padding: '20px 20px 28px', background: `linear-gradient(180deg, ${MANDA.green}, #157346)`,
+        color: '#fff', position: 'relative', overflow: 'hidden'
+      }}>
+        <div style={{ position: 'absolute', top: -100, right: -100, width: 280, height: 280, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,255,255,.18), transparent 70%)' }} />
+        <button style={{ width: 36, height: 36, borderRadius: 18, border: 'none', background: 'rgba(255,255,255,.18)', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>{Icon.chevronLeft(20, '#fff')}</button>
+
+        <div style={{ position: 'relative', marginTop: 18, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{
+            width: 78, height: 78, borderRadius: '50%', background: 'rgba(255,255,255,.18)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 0 0 8px rgba(255,255,255,.08)'
+          }}>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#fff', color: MANDA.green, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {Icon.check(34, MANDA.green)}
+            </div>
+          </div>
+          <div style={{ fontFamily: MANDA.font, fontSize: 22, fontWeight: 800, letterSpacing: -0.6, marginTop: 14 }}>Transação concluída</div>
+          <div style={{ fontFamily: MANDA.font, fontSize: 13, opacity: 0.85, marginTop: 4 }}>#MND-8147 · 14:42 · 10 min</div>
+
+          <div style={{ marginTop: 18, padding: '14px 18px', borderRadius: 18, background: 'rgba(255,255,255,.12)', backdropFilter: 'blur(20px)', textAlign: 'center', minWidth: 240 }}>
+            <div style={{ fontFamily: MANDA.font, fontSize: 12, opacity: 0.8, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase' }}>Você recebeu</div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 36, fontWeight: 800, marginTop: 6, fontVariantNumeric: 'tabular-nums', letterSpacing: -1.2 }}>$200,00</div>
+            <div style={{ fontFamily: MANDA.font, fontSize: 12.5, opacity: 0.85, marginTop: 4 }}>por 175.875 Kz · câmbio 875</div>
+          </div>
+        </div>
+      </div>
+
+      {/* Receipt */}
+      <div style={{ flex: 1, overflow: 'auto', padding: '18px 18px 24px' }}>
+        <div style={{ fontFamily: MANDA.font, fontSize: 12, fontWeight: 800, color: MANDA.inkMuted, letterSpacing: 0.6, textTransform: 'uppercase' }}>Resumo</div>
+
+        <div style={{ marginTop: 8, padding: 14, borderRadius: 16, border: `1px solid ${MANDA.cardBorder}` }}>
+          {[
+          ['Contraparte', 'Maria Pacheco · @maria.p'],
+          ['Valor negociado', '200 USD'],
+          ['Câmbio', '875 Kz / USD'],
+          ['Base', '175.000 Kz'],
+          ['Banco de origem', 'BAI · IBAN ····5612'],
+          ['Banco de destino', 'BAI USD · ····8821']].
+          map(([k, v], i) =>
+          <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontFamily: MANDA.font, fontSize: 13.5 }}>
+              <div style={{ color: MANDA.inkMuted }}>{k}</div>
+              <div style={{ color: MANDA.ink, fontWeight: 700, textAlign: 'right' }}>{v}</div>
+            </div>
+          )}
+          <div style={{ height: 1, background: MANDA.divider, margin: '8px 0' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontFamily: MANDA.font, fontSize: 13 }}>
+            <div style={{ color: MANDA.inkMuted }}>Sua taxa (0,5%)</div>
+            <div style={{ color: MANDA.ink, fontWeight: 700, fontVariantNumeric: 'tabular-nums' }}>875 Kz</div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '4px 0', fontFamily: MANDA.font, fontSize: 13, color: MANDA.inkSubtle }}>
+            <div>Taxa da contraparte (0,5%)</div>
+            <div style={{ fontWeight: 600, fontVariantNumeric: 'tabular-nums' }}>875 Kz</div>
+          </div>
+          <div style={{ height: 1, background: MANDA.divider, margin: '8px 0' }} />
+          <div style={{ display: 'flex', justifyContent: 'space-between', padding: '2px 0', fontFamily: MANDA.font, fontSize: 14.5 }}>
+            <div style={{ color: MANDA.ink, fontWeight: 800 }}>Total cobrado de você</div>
+            <div style={{ color: MANDA.ink, fontWeight: 800, fontVariantNumeric: 'tabular-nums' }}>175.875 Kz</div>
+          </div>
+        </div>
+
+        {/* Rate */}
+        <div style={{ marginTop: 16, padding: 14, borderRadius: 16, background: MANDA.greenSoft }}>
+          <div style={{ fontFamily: MANDA.font, fontSize: 13.5, fontWeight: 800, color: MANDA.greenDeep }}>Como foi a Maria?</div>
+          <div style={{ fontFamily: MANDA.font, fontSize: 12, color: MANDA.greenDeep, opacity: .85, marginTop: 2 }}>A sua avaliação ajuda a comunidade.</div>
+          <div style={{ display: 'flex', gap: 6, marginTop: 10 }}>
+            {[1, 2, 3, 4, 5].map((i) => <span key={i}>{Icon.star(28, '#F2B632', true)}</span>)}
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, marginTop: 18 }}>
+          <button style={{ flex: 1, height: 50, borderRadius: 25, background: MANDA.paper, color: MANDA.ink, border: 'none', fontFamily: MANDA.font, fontWeight: 700, fontSize: 14 }}>Baixar recibo</button>
+          <PrimaryButton style={{ flex: 1 }} size="md">Voltar à conversa</PrimaryButton>
+        </div>
+      </div>
+    </div>);
+
+}
+
+Object.assign(window, {
+  ScreenOpenTransaction, ScreenTransactionProposal,
+  ScreenTransactionBuyer, ScreenTransactionSeller,
+  ScreenThirdPartyConsent, ScreenTransactionStates, ScreenTransactionDone,
+  TransactionCard, ProposalCard, StepRail, StatusBadge, TX_STATUS,
+  BUYER_STEPS, SELLER_STEPS
+});

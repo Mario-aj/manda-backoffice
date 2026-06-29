@@ -1,0 +1,53 @@
+---
+description: Search the codebase and reuse existing abstractions before adding new ones
+alwaysApply: true
+---
+
+# Reuse Before Create
+
+Before adding a component, hook, utility, or helper, **search the project first**. Extend or reuse what already exists instead of duplicating logic.
+
+## Required workflow
+
+1. **Search** — grep or semantic search for similar names, behavior, or patterns (`hooks/`, `components/`, `lib/`, `utils/`, providers).
+2. **Reuse** — import and use the existing abstraction when it fits (or generalize it if the use case is close).
+3. **Extract** — if the same logic appears in two places, extract to a shared module (e.g. `hooks/use-*.ts`, `lib/*.ts`) and update all call sites.
+4. **Create new** — only when nothing suitable exists and extraction is not warranted.
+
+## Where to look
+
+| Need | Check first |
+|------|-------------|
+| React state / effects | `hooks/` |
+| UI building blocks | `components/manda/`, feature folders under `components/` |
+| API / cache / domain | `lib/` |
+| App-wide context | `providers/` |
+| Theme / constants | `constants/` |
+
+## Examples
+
+```tsx
+// ❌ BAD — duplicate keyboard listener in a component
+useEffect(() => {
+  const show = Keyboard.addListener("keyboardDidShow", () => setOpen(true));
+  ...
+}, []);
+
+// ✅ GOOD — reuse shared hook
+import { useKeyboardVisible } from "@/hooks/use-keyboard-visible";
+const keyboardVisible = useKeyboardVisible();
+```
+
+```tsx
+// ❌ BAD — new DebounceInput when useDebounce exists
+function MyScreen() { /* inline setTimeout debounce */ }
+
+// ✅ GOOD
+import { useDebounce } from "@/hooks/use-debounce";
+```
+
+## When generalizing
+
+- Prefer **one flexible hook/utility** over several near-identical copies.
+- Keep the shared API small; add optional params only when a second caller needs them.
+- After extracting, **delete** the inlined duplicate and update imports.

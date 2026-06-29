@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Manda — App de mensagens com câmbio P2P</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
+<style>
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  /* Smooth canvas scroll while preserving inner overflow behavior */
+  .device-shell { transform-origin: top left; }
+</style>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+</head>
+<body>
+<template id="__bundler_thumbnail" data-bg-color="#0B4D2F">
+  <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
+    <rect width="1200" height="800" fill="#0B4D2F"/>
+    <rect x="500" y="270" width="200" height="200" rx="56" fill="#1A8754"/>
+    <path d="M548 540h104a40 40 0 0140 40v104a40 40 0 01-40 40H548a40 40 0 01-40-40V580a40 40 0 0140-40z" fill="#1A8754" opacity="0.12" transform="translate(0 -270)"/>
+    <path d="M560 360l34 26 52-52" fill="none" stroke="#fff" stroke-width="22" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="600" y="560" font-family="system-ui, sans-serif" font-size="64" font-weight="800" fill="#fff" text-anchor="middle" letter-spacing="-2">manda<tspan fill="#00C281">.</tspan></text>
+  </svg>
+</template>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="ios-frame.jsx"></script>
+<script type="text/babel" src="brand.jsx"></script>
+<script type="text/babel" src="screens-auth.jsx"></script>
+<script type="text/babel" src="screens-chat.jsx"></script>
+<script type="text/babel" src="screens-groups.jsx"></script>
+<script type="text/babel" src="screens-group-settings.jsx"></script>
+<script type="text/babel" src="screens-transaction.jsx"></script>
+<script type="text/babel" src="screens-profile-push.jsx"></script>
+<script type="text/babel" src="screens-kyc.jsx"></script>
+<script type="text/babel" src="screens-backoffice.jsx"></script>
+<script type="text/babel" src="screens-landing.jsx"></script>
+
+<script type="text/babel">
+// Wrap each phone screen in an IOSDevice frame. Status bar floats above.
+function Phone({ children, dark }) {
+  return (
+    <div style={{ position: 'relative' }}>
+      <IOSDevice dark={dark}>
+        <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+          {children}
+        </div>
+      </IOSDevice>
+    </div>
+  );
+}
+
+function App() {
+  // Standard iPhone frame ≈ 402×874. We use 402×874 as artboard size.
+  const W = 402, H = 874;
+  return (
+    <DesignCanvas>
+      <DCSection id="auth" title="1 · Autenticação e cadastro" subtitle="Onboarding com confiança financeira — verde e branco, sem ruído.">
+        <DCArtboard id="welcome" label="Welcome / splash" width={W} height={H}><Phone dark><ScreenWelcome /></Phone></DCArtboard>
+        <DCArtboard id="login" label="Login" width={W} height={H}><Phone><ScreenLogin /></Phone></DCArtboard>
+        <DCArtboard id="register" label="Cadastro · passo 2/3" width={W} height={H}><Phone><ScreenRegister /></Phone></DCArtboard>
+        <DCArtboard id="otp" label="Confirmação por OTP" width={W} height={H}><Phone><ScreenOTP /></Phone></DCArtboard>
+        <DCArtboard id="forgot" label="Esqueci a senha · email" width={W} height={H}><Phone><ScreenForgotPassword /></Phone></DCArtboard>
+        <DCArtboard id="reset" label="Redefinir senha · OTP + nova senha" width={W} height={H}><Phone><ScreenResetPassword /></Phone></DCArtboard>
+        <DCArtboard id="onboarding" label="Onboarding sugestões" width={W} height={H}><Phone><ScreenOnboarding /></Phone></DCArtboard>
+        <DCArtboard id="onboarding-skeleton" label="Onboarding · skeleton loading" width={W} height={H}><Phone><ScreenOnboardingSkeleton /></Phone></DCArtboard>
+        <DCArtboard id="onboarding-first-user" label="Onboarding · primeiro utilizador (sem comunidade)" width={W} height={H}><Phone><ScreenOnboardingFirstUser /></Phone></DCArtboard>
+      </DCSection>
+
+      <DCSection id="messaging" title="2 · Mensagens" subtitle="Lista de conversas, busca global, conversa 1:1, conversa em grupo. Inclui estados de vazio e carregamento.">
+        <DCArtboard id="chatlist" label="Conversas" width={W} height={H}><Phone><ScreenChatList /></Phone></DCArtboard>
+        <DCArtboard id="chatlist-skeleton" label="Conversas · skeleton loading" width={W} height={H}><Phone><ScreenChatListSkeleton /></Phone></DCArtboard>
+        <DCArtboard id="chatlist-empty" label="Conversas · vazio" width={W} height={H}><Phone><ScreenChatListEmpty /></Phone></DCArtboard>
+        <DCArtboard id="search" label="Busca · usuários + grupos" width={W} height={H}><Phone><ScreenSearch /></Phone></DCArtboard>
+        <DCArtboard id="chat1to1" label="Conversa 1:1" width={W} height={H}><Phone><ScreenChat1to1 /></Phone></DCArtboard>
+        <DCArtboard id="chat1to1-empty" label="Conversa 1:1 · vazio" width={W} height={H}><Phone><ScreenChat1to1Empty /></Phone></DCArtboard>
+        <DCArtboard id="chat1to1-skeleton" label="Conversa 1:1 · skeleton" width={W} height={H}><Phone><ScreenChatSkeleton /></Phone></DCArtboard>
+        <DCArtboard id="chatgroup" label="Conversa em grupo" width={W} height={H}><Phone><ScreenChatGroup /></Phone></DCArtboard>
+        <DCArtboard id="chatgroup-empty" label="Conversa em grupo · vazio (grupo novo)" width={W} height={H}><Phone><ScreenChatGroupEmpty /></Phone></DCArtboard>
+        <DCArtboard id="chatgroup-skeleton" label="Conversa em grupo · skeleton" width={W} height={H}><Phone><ScreenChatSkeleton group /></Phone></DCArtboard>
+      </DCSection>
+
+      <DCSection id="groups" title="3 · Grupos" subtitle="Criar grupo (público ou privado, até 500 membros), adicionar membros, e info / definições do grupo por papél (dono, admin, membro).">
+        <DCArtboard id="group-create-details" label="Criar grupo · passo 1 (detalhes)" width={W} height={H}><Phone><ScreenCreateGroupDetails /></Phone></DCArtboard>
+        <DCArtboard id="group-create-members" label="Criar grupo · passo 2 (membros)" width={W} height={H}><Phone><ScreenCreateGroupMembers /></Phone></DCArtboard>
+        <DCArtboard id="group-add-members" label="Adicionar membros (grupo existente)" width={W} height={H}><Phone><ScreenAddGroupMembers /></Phone></DCArtboard>
+        <DCArtboard id="group-settings-owner" label="Info do grupo · vista do dono" width={W} height={H}><Phone><ScreenGroupSettingsOwner /></Phone></DCArtboard>
+        <DCArtboard id="group-settings-admin" label="Info do grupo · vista do admin" width={W} height={H}><Phone><ScreenGroupSettingsAdmin /></Phone></DCArtboard>
+        <DCArtboard id="group-settings-member" label="Info do grupo · vista de um membro" width={W} height={H}><Phone><ScreenGroupSettingsMember /></Phone></DCArtboard>
+      </DCSection>
+
+      <DCSection id="transaction" title="4 · Fluxo da transação" subtitle="Só o vendedor propõe → o comprador aceita → escrow Kz → payout ao vendedor. Taxa 1% total (0,5% comprador + 0,5% vendedor). Matemática sempre em Kz.">
+        <DCArtboard id="tx-open" label="Vendedor propõe · enviar proposta" width={W} height={H}><Phone><ScreenOpenTransaction /></Phone></DCArtboard>
+        <DCArtboard id="tx-proposal" label="Proposta recebida · comprador aceita/rejeita" width={W} height={H}><Phone><ScreenTransactionProposal /></Phone></DCArtboard>
+        <DCArtboard id="tx-buyer" label="Comprador · pagar Kz + comprovativo" width={W} height={H}><Phone><ScreenTransactionBuyer /></Phone></DCArtboard>
+        <DCArtboard id="tx-seller" label="Vendedor · enviar USD + comprovativo" width={W} height={H}><Phone><ScreenTransactionSeller /></Phone></DCArtboard>
+        <DCArtboard id="tx-consent" label="Consentimento · conta de terceiro" width={W} height={H}><Phone><ScreenThirdPartyConsent /></Phone></DCArtboard>
+        <DCArtboard id="tx-states" label="Estados da transação (referência)" width={W} height={H}><Phone><ScreenTransactionStates /></Phone></DCArtboard>
+        <DCArtboard id="tx-done" label="Transação concluída" width={W} height={H}><Phone><ScreenTransactionDone /></Phone></DCArtboard>
+      </DCSection>
+
+      <DCSection id="account" title="5 · Perfil e notificação" subtitle="Página de perfil do usuário e push notification no lock screen.">
+        <DCArtboard id="profile" label="Perfil do usuário" width={W} height={H}><Phone><ScreenProfile /></Phone></DCArtboard>
+        <DCArtboard id="push" label="Push notification · lock screen" width={W} height={H}><Phone dark><ScreenLockPush /></Phone></DCArtboard>
+      </DCSection>
+
+      <DCSection id="kyc" title="6 · KYC (verificação de identidade)" subtitle="Fluxo mobile: intro → tipo de documento → captura (4 imagens) → rever → resultado. Revisão manual; fotos privadas.">
+        <DCArtboard id="kyc-intro" label="Intro · começar" width={W} height={H}><Phone><ScreenKYCIntro /></Phone></DCArtboard>
+        <DCArtboard id="kyc-doctype" label="Escolher documento" width={W} height={H}><Phone><ScreenKYCDocType /></Phone></DCArtboard>
+        <DCArtboard id="kyc-capture-front" label="Captura · frente (guia)" width={W} height={H}><Phone><ScreenKYCCaptureFront /></Phone></DCArtboard>
+        <DCArtboard id="kyc-capture-selfiedoc" label="Captura · selfie + doc (guia)" width={W} height={H}><Phone><ScreenKYCCaptureSelfieDoc /></Phone></DCArtboard>
+        <DCArtboard id="kyc-capture-done" label="Captura · capturado" width={W} height={H}><Phone><ScreenKYCCaptureDone /></Phone></DCArtboard>
+        <DCArtboard id="kyc-review" label="Rever e enviar" width={W} height={H}><Phone><ScreenKYCReview /></Phone></DCArtboard>
+        <DCArtboard id="kyc-pending" label="Resultado · em análise" width={W} height={H}><Phone><ScreenKYCPending /></Phone></DCArtboard>
+        <DCArtboard id="kyc-approved" label="Resultado · verificado" width={W} height={H}><Phone><ScreenKYCApproved /></Phone></DCArtboard>
+        <DCArtboard id="kyc-rejected" label="Resultado · rejeitado" width={W} height={H}><Phone><ScreenKYCRejected /></Phone></DCArtboard>
+      </DCSection>
+
+      <DCSection id="backoffice" title="7 · Backoffice (web)" subtitle="Painel de operações: login, fila e detalhe de KYC (com lightbox e modal de rejeição), lista e detalhe de transações.">
+        <DCArtboard id="bo-login" label="Login" width={1280} height={820}><WebFrame url="backoffice.manda.ao/entrar"><BOLogin /></WebFrame></DCArtboard>
+        <DCArtboard id="bo-kyc-queue" label="KYC · fila" width={1280} height={820}><WebFrame url="backoffice.manda.ao/kyc"><BOKycQueue /></WebFrame></DCArtboard>
+        <DCArtboard id="bo-kyc-detail" label="KYC · detalhe" width={1280} height={820}><WebFrame url="backoffice.manda.ao/kyc/joao-cangola"><BOKycDetail /></WebFrame></DCArtboard>
+        <DCArtboard id="bo-kyc-lightbox" label="KYC · detalhe (lightbox)" width={1280} height={820}><WebFrame url="backoffice.manda.ao/kyc/joao-cangola"><BOKycLightbox /></WebFrame></DCArtboard>
+        <DCArtboard id="bo-kyc-reject" label="KYC · modal de rejeição" width={1280} height={820}><WebFrame url="backoffice.manda.ao/kyc/joao-cangola"><BOKycReject /></WebFrame></DCArtboard>
+        <DCArtboard id="bo-tx-list" label="Transações · lista" width={1280} height={820}><WebFrame url="backoffice.manda.ao/transacoes"><BOTxList /></WebFrame></DCArtboard>
+        <DCArtboard id="bo-tx-detail" label="Transação · detalhe" width={1280} height={820}><WebFrame url="backoffice.manda.ao/transacoes/MND-8147"><BOTxDetail /></WebFrame></DCArtboard>
+      </DCSection>
+
+      <DCSection id="landing" title="8 · Landing page (web)" subtitle="Página de marketing verde-e-branco com telas reais do mobile. Sem carteira, sem cripto; taxa 0,5%/0,5%.">
+        <DCArtboard id="landing" label="Landing page" width={1280} height={4410}><ScreenLanding /></DCArtboard>
+      </DCSection>
+
+      <DCPostIt x={20} y={20} width={280}>
+        <b>Manda</b> — mensageria + câmbio P2P entre Kz, USD e EUR.<br/><br/>
+        Verde + branco para transmitir confiança financeira; tipografia Plus Jakarta Sans com numerais tabulares para os valores monetários.<br/><br/>
+        Só o <b>vendedor propõe</b>; o comprador aceita. O escrow é uma retenção transitória de Kz (sem carteira) que sai para o banco do vendedor. Taxa total <b>1%</b> = <b>0,5%</b> comprador + <b>0,5%</b> vendedor. Confirmação de fundos é <b>manual</b>; o comprovativo é auxiliar.
+      </DCPostIt>
+    </DesignCanvas>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>

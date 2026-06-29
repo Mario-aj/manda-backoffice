@@ -1,0 +1,129 @@
+---
+description: Manda App behavioral guidelines — security-first coding posture for a financial app
+alwaysApply: true
+---
+
+# Behavioral guidelines
+
+Behavioral guidelines to reduce common LLM coding mistakes. Merge with project-specific instructions as needed.
+
+**Tradeoff:** These guidelines bias toward caution over speed. For trivial tasks, use judgment.
+
+**Order of precedence:** Security First (§1) overrides everything else. Simplicity, surgical changes, and shipping speed never justify weakening a security control.
+
+## 1. Security First — non-negotiable
+
+**This is a financial application. Security is the highest-priority correctness criterion, ahead of features, performance, and ergonomics. A working feature with a security flaw is not done — it is broken.**
+
+Before writing or modifying any code that touches authentication, authorization, money, balances, user data, tokens, sessions, deep links, or external I/O — **stop and threat-model**:
+
+- What's the trust boundary? Who controls the input? What happens if it's malicious?
+- Is this screen/action reachable by an unauthenticated user? Is that intentional?
+- Could a user reach data, balances, or chats that aren't theirs? (IDOR / BOLA)
+- What gets logged or sent to a crash reporter? Could it leak a token or PII?
+- Are tokens stored where they belong? Is the transport encrypted?
+
+### 1.1 Hard rules — never violate
+
+- **Never log secrets, JWTs, refresh tokens, passwords, full card numbers, CVVs, or PII** — not even in dev. Log identifiers (`userId`, `requestId`), not contents.
+- **Never persist tokens outside `expo-secure-store`.** No AsyncStorage, MMKV, Redux, files, query cache, or component state. This is a hard line.
+- **Never commit secrets.** `.env*`, key files, signing certs, Expo tokens stay out of git.
+- **Never trust the client itself.** Backend authorization is the truth — frontend checks are UX only. Hidden buttons are not access control.
+- **Never invent crypto.** SecureStore is Keychain/Keystore-backed; use it. Don't roll your own encryption or token format.
+- **Never bypass HTTPS in production.** Cleartext is dev-only (`usesCleartextTraffic` Android flag).
+- **Never hand-roll the `Authorization` header in components.** The axios interceptor is the only injection point.
+- **Never call `/auth/refresh` directly from a component.** The single-flight guard in `lib/api/client.ts` is the only path — bypassing it can stampede the backend and corrupt the refresh family.
+- **Never auto-act on a deep link (`mandaapp://`) for a sensitive operation.** Deep links are untrusted input — show confirmation UI before transferring value, changing credentials, or revealing data.
+- **Never use `Math.random()`** for IDs, nonces, or anything that influences auth or state ownership. Use `crypto.randomUUID()` or backend-issued IDs.
+
+### 1.2 Posture
+
+- **Default deny on routes.** New screens under `(app)/` inherit the auth guard; do not duplicate or weaken it. New unauthenticated screens go under `(auth)/` and are reviewed.
+- **Minimal token surface.** Touch tokens only inside `lib/api/storage.ts` and `lib/api/client.ts`. Components and screens should never see raw tokens.
+- **Validate before you trust API data.** When server shape is uncertain (new endpoint, optional field), narrow with type guards — don't `as User`.
+- **Error display.** Show `ApiError.message` (Portuguese from API). Never echo raw stack traces, response bodies, or token fragments into the UI.
+- **Crash reporters and analytics** must scrub headers, request bodies, and response bodies before sending. If a reporter is added, configure redaction in the same PR.
+- **Clipboard / screenshots / share intents** can leak sensitive content — opt out (`secureTextEntry`, `FLAG_SECURE`, etc.) on screens that show balances, tokens, or recovery info.
+- **Dependencies are supply chain.** Each new package is a new trust assumption. Prefer the Expo SDK, the standard library, or what's already installed.
+
+### 1.3 Frontend-specific (manda-app)
+
+- Tokens live **only** in SecureStore under `manda.auth.accessToken` / `manda.auth.refreshToken`. Partial state (one token missing) = unauthenticated.
+- The axios request interceptor skips `/auth/login`, `/auth/register`, `/auth/refresh` — preserve that exclusion; bearer leakage on those endpoints can leak a stale token to logs.
+- Refresh uses a **separate bare axios client** (`refreshClient`) so a 401 on refresh cannot recurse. Don't merge it into the main client.
+- WebSocket handshake auth is `Sec-WebSocket-Protocol: bearer.<accessToken>` — the only path. Don't put the token in a URL query string (it lands in logs and history).
+- TanStack Query is configured to **never retry 4xx**. If you tighten or loosen retry, do not introduce auth-loop bugs: a 401 must NOT be retried by the query, only by the axios refresh interceptor (once).
+- Inputs that hit the API (`TextField`, `OtpBoxes`) get UX validation only — the backend re-validates. Don't skip backend round-trips because "the form already checked it."
+
+### 1.4 When in doubt
+
+Stop and surface the question. A 10-minute conversation about whether a screen needs the auth guard is infinitely cheaper than an incident. Security questions are never "premature optimization."
+
+## 2. Think Before Coding
+
+**Don't assume. Don't hide confusion. Surface tradeoffs.**
+
+Before implementing:
+
+- State your assumptions explicitly. If uncertain, ask.
+- If multiple interpretations exist, present them - don't pick silently.
+- If a simpler approach exists, say so. Push back when warranted.
+- If something is unclear, stop. Name what's confusing. Ask.
+
+## 3. Simplicity First
+
+**Minimum code that solves the problem. Nothing speculative.**
+
+- No features beyond what was asked.
+- No abstractions for single-use code.
+- No "flexibility" or "configurability" that wasn't requested.
+- No error handling for impossible scenarios.
+- If you write 200 lines and it could be 50, rewrite it.
+
+Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
+
+> Simplicity never overrides §1. "Simpler" code that bypasses the axios interceptor or stashes a token in component state is not simpler — it's broken.
+
+## 4. Surgical Changes
+
+**Touch only what you must. Clean up only your own mess.**
+
+When editing existing code:
+
+- Don't "improve" adjacent code, comments, or formatting.
+- Don't refactor things that aren't broken.
+- Match existing style, even if you'd do it differently.
+- If you notice unrelated dead code, mention it - don't delete it.
+
+When your changes create orphans:
+
+- Remove imports/variables/functions that YOUR changes made unused.
+- Don't remove pre-existing dead code unless asked.
+
+The test: Every changed line should trace directly to the user's request.
+
+## 5. Goal-Driven Execution
+
+**Define success criteria. Loop until verified.**
+
+Transform tasks into verifiable goals:
+
+- "Add validation" → "Write tests for invalid inputs, then make them pass"
+- "Fix the bug" → "Write a test that reproduces it, then make it pass"
+- "Refactor X" → "Ensure tests pass before and after"
+
+For multi-step tasks, state a brief plan:
+
+```
+1. [Step] → verify: [check]
+2. [Step] → verify: [check]
+3. [Step] → verify: [check]
+```
+
+Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+
+For security-sensitive work, success criteria **must include** a negative test: an unauthenticated user hitting the screen, an expired token, a denied refresh, a malformed deep link — and a verification that the app handles it without leaking state.
+
+---
+
+**These guidelines are working if:** fewer unnecessary changes in diffs, fewer rewrites due to overcomplication, clarifying questions come before implementation rather than after mistakes, and no security control is ever quietly weakened to ship faster.

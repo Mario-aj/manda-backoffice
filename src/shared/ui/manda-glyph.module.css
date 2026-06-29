@@ -1,0 +1,37 @@
+.glyph {
+  --glyph-size: 32px;
+  --glyph-color: var(--manda-white);
+  --glyph-bg: var(--manda-green);
+  width: var(--glyph-size);
+  height: var(--glyph-size);
+  border-radius: calc(var(--glyph-size) * 0.28);
+  background: var(--glyph-bg);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 calc(var(--glyph-size) * 0.06) calc(var(--glyph-size) * 0.18)
+    color-mix(in srgb, var(--glyph-bg) 25%, transparent);
+  color: var(--glyph-color);
+}
+
+.size36 {
+  --glyph-size: 36px;
+}
+
+.icon {
+  width: 62%;
+  height: 62%;
+}
+
+.iconFill {
+  fill: currentColor;
+  opacity: 0.18;
+}
+
+.iconStroke {
+  stroke: currentColor;
+  stroke-width: 2.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  fill: none;
+}
