@@ -1,3 +1,4 @@
+import { NavLink } from "react-router-dom";
 import { MandaWordmark } from "@/shared/ui/manda-wordmark";
 import { Avatar } from "@/shared/ui/avatar";
 import { useAuth } from "@/features/auth/providers/auth-provider";
@@ -53,8 +54,13 @@ function ExchangeIcon() {
 }
 
 const NAV_ITEMS = [
-  { key: "kyc", label: "KYC", icon: ShieldIcon, disabled: true },
-  { key: "tx", label: "Transações", icon: ExchangeIcon, disabled: true },
+  { key: "kyc", label: "KYC", icon: ShieldIcon, to: null as string | null },
+  {
+    key: "tx",
+    label: "Transações",
+    icon: ExchangeIcon,
+    to: "/transactions",
+  },
 ] as const;
 
 export function Sidebar() {
@@ -72,23 +78,44 @@ export function Sidebar() {
       <nav className={styles.nav} aria-label="Navegação principal">
         {NAV_ITEMS.map((item) => {
           const Icon = item.icon;
-          return (
-            <div
-              key={item.key}
-              className={[
-                styles.navItem,
-                item.disabled ? styles.navItemDisabled : "",
-              ]
-                .filter(Boolean)
-                .join(" ")}
-              title={item.disabled ? "Em breve" : undefined}
-            >
+          const disabled = !item.to;
+
+          const content = (
+            <>
               <Icon />
               <span className={styles.navItemLabel}>{item.label}</span>
-              {item.disabled && (
+              {disabled ? (
                 <span className={styles.navItemBadge}>Em breve</span>
-              )}
-            </div>
+              ) : null}
+            </>
+          );
+
+          if (disabled) {
+            return (
+              <div
+                key={item.key}
+                className={[styles.navItem, styles.navItemDisabled]
+                  .filter(Boolean)
+                  .join(" ")}
+                title="Em breve"
+              >
+                {content}
+              </div>
+            );
+          }
+
+          return (
+            <NavLink
+              key={item.key}
+              to={item.to}
+              className={({ isActive }) =>
+                [styles.navItem, isActive ? styles.navItemActive : ""]
+                  .filter(Boolean)
+                  .join(" ")
+              }
+            >
+              {content}
+            </NavLink>
           );
         })}
       </nav>

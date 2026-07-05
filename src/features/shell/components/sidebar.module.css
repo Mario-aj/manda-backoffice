@@ -40,11 +40,21 @@
   color: rgba(255, 255, 255, 0.45);
   font-size: 14.5px;
   font-weight: 600;
+  text-decoration: none;
 }
 
 .navItemDisabled {
   cursor: not-allowed;
   opacity: 0.65;
+}
+
+.navItemActive {
+  background: rgba(255, 255, 255, 0.12);
+  color: var(--manda-white);
+}
+
+.navItemActive .navIcon {
+  color: var(--manda-white);
 }
 
 .navItemLabel {

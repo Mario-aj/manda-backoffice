@@ -84,6 +84,70 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["staff_StaffTransactionsController_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/transactions/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["staff_StaffTransactionsController_findById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/transactions/{id}/confirm-escrow": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["staff_StaffTransactionsController_confirmEscrow"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/staff/transactions/{transactionId}/comprovativos/{uploadId}/read-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["staff_StaffTransactionsController_comprovativoReadUrl"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -118,6 +182,121 @@ export interface components {
             lastLoginAt?: string | null;
             /** Format: date-time */
             createdAt: string;
+        };
+        CompanyBankSnapshotDto: {
+            /** @example BAI */
+            bankName: string;
+            /** @example Manda Escrow */
+            holderName: string;
+            /** @example AO06004000000000000000000 */
+            iban: string;
+            /** @example AOA */
+            currency: string;
+            /** @example MND */
+            referencePrefix?: Record<string, never> | null;
+        };
+        TransactionSummaryDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example MND-8147 */
+            refCode: string;
+            /** @enum {string} */
+            status: "proposta" | "rejeitada" | "proposta_expirada" | "a_aguardar_pagamento_comprador" | "comprador_pagou_pendente_ops" | "escrow_confirmado" | "vendedor_enviou_pendente" | "comprador_confirmou_rececao" | "payout_pendente" | "concluida" | "cancelada" | "disputa";
+            /** @enum {string} */
+            foreignCurrency: "USD" | "EUR" | "BRL" | "RUB" | "USDT";
+            /**
+             * @description Whole foreign units only in MVP (no cents). E.g. 200 USD, 376 EUR.
+             * @example 200
+             */
+            foreignAmount: number;
+            /**
+             * @description Agreed Kz per 1 whole foreign unit (integer). E.g. 875 Kz/USD.
+             * @example 875
+             */
+            exchangeRateKzPerUnit: number;
+            /**
+             * @description Authoritative Kz base (integer).
+             * @example 175000
+             */
+            baseKz: number;
+            /** @example 175875 */
+            buyerPaysKz: number;
+            /** @example 174125 */
+            sellerReceivesKz: number;
+            /** Format: uuid */
+            sellerId: string;
+            /** Format: uuid */
+            buyerId: string;
+            /**
+             * Format: date-time
+             * @description Proposal validity deadline (15 min from creation in MVP).
+             */
+            proposalExpiresAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Payment deadline (15 min from acceptance in MVP).
+             */
+            paymentExpiresAt?: string | null;
+            /** Format: uuid */
+            conversationId?: string;
+            companyBankSnapshot?: components["schemas"]["CompanyBankSnapshotDto"];
+        };
+        ComprovativoSummaryDto: {
+            /** Format: uuid */
+            uploadId: string;
+            /** Format: uuid */
+            ownerId: string;
+            /** @enum {string} */
+            ownerRole: "buyer" | "seller";
+            /** Format: date-time */
+            createdAt: string;
+        };
+        StaffTransactionDetailDto: {
+            /** Format: uuid */
+            id: string;
+            /** @example MND-8147 */
+            refCode: string;
+            /** @enum {string} */
+            status: "proposta" | "rejeitada" | "proposta_expirada" | "a_aguardar_pagamento_comprador" | "comprador_pagou_pendente_ops" | "escrow_confirmado" | "vendedor_enviou_pendente" | "comprador_confirmou_rececao" | "payout_pendente" | "concluida" | "cancelada" | "disputa";
+            /** @enum {string} */
+            foreignCurrency: "USD" | "EUR" | "BRL" | "RUB" | "USDT";
+            /**
+             * @description Whole foreign units only in MVP (no cents). E.g. 200 USD, 376 EUR.
+             * @example 200
+             */
+            foreignAmount: number;
+            /**
+             * @description Agreed Kz per 1 whole foreign unit (integer). E.g. 875 Kz/USD.
+             * @example 875
+             */
+            exchangeRateKzPerUnit: number;
+            /**
+             * @description Authoritative Kz base (integer).
+             * @example 175000
+             */
+            baseKz: number;
+            /** @example 175875 */
+            buyerPaysKz: number;
+            /** @example 174125 */
+            sellerReceivesKz: number;
+            /** Format: uuid */
+            sellerId: string;
+            /** Format: uuid */
+            buyerId: string;
+            /**
+             * Format: date-time
+             * @description Proposal validity deadline (15 min from creation in MVP).
+             */
+            proposalExpiresAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Payment deadline (15 min from acceptance in MVP).
+             */
+            paymentExpiresAt?: string | null;
+            /** Format: uuid */
+            conversationId?: string;
+            companyBankSnapshot?: components["schemas"]["CompanyBankSnapshotDto"];
+            comprovativos: components["schemas"]["ComprovativoSummaryDto"][];
         };
         ApiErrorResponseDto: {
             /** @example 400 */
@@ -244,6 +423,93 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    staff_StaffTransactionsController_list: {
+        parameters: {
+            query?: {
+                status?: "proposta" | "rejeitada" | "proposta_expirada" | "a_aguardar_pagamento_comprador" | "comprador_pagou_pendente_ops" | "escrow_confirmado" | "vendedor_enviou_pendente" | "comprador_confirmou_rececao" | "payout_pendente" | "concluida" | "cancelada" | "disputa";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionSummaryDto"][];
+                };
+            };
+        };
+    };
+    staff_StaffTransactionsController_findById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffTransactionDetailDto"];
+                };
+            };
+        };
+    };
+    staff_StaffTransactionsController_confirmEscrow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionSummaryDto"];
+                };
+            };
+        };
+    };
+    staff_StaffTransactionsController_comprovativoReadUrl: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                transactionId: string;
+                uploadId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        readUrl: string;
+                    };
+                };
             };
         };
     };
