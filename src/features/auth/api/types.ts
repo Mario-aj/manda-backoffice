@@ -1,4 +1,6 @@
-export type StaffRole = 'ops' | 'support' | 'compliance' | 'superAdmin';
+import type { StaffProfileResponseDto } from "@/shared/api/generated";
+
+export type StaffRole = StaffProfileResponseDto["role"];
 
 export type StaffAuthTokens = {
   accessToken: string;
@@ -6,15 +8,8 @@ export type StaffAuthTokens = {
   expiresIn: number;
 };
 
-export type StaffProfile = {
-  id: string;
-  email: string;
-  fullName: string;
-  role: StaffRole;
-  status: 'active' | 'disabled';
-  lastLoginAt: string | null;
-  createdAt: string;
-};
+/** Contract type from OpenAPI — see src/shared/api/generated/staff-api.ts */
+export type StaffProfile = StaffProfileResponseDto;
 
 export type LoginInput = {
   email: string;
@@ -22,5 +17,5 @@ export type LoginInput = {
 };
 
 export type TokenResponse = StaffAuthTokens & {
-  tokenType: 'Bearer';
+  tokenType: "Bearer";
 };
