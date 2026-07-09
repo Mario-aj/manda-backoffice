@@ -6,11 +6,11 @@ alwaysApply: false
 
 # Manda Backoffice — Architecture Decision Record
 
-**Version:** 1.0 — MVP (auth + shell)
+**Version:** 1.1 — auth, shell, transactions (ops)
 **Status:** In development
 **Audience:** Engineers and AI agents working on `backoffice/`
 
-> **Scope:** Electron desktop app for Manda staff/ops. Consumes **`/staff/auth/*`** only in this phase — KYC and transactions are deferred. Relevant when working under `src/**`, `electron/**`, or build config.
+> **Scope:** Electron desktop app for Manda **staff/ops**. Consumes **`/staff/*`** on the `manda` api. **Not** the end-user mobile client (`manda-app/`). Relevant when working under `src/**`, `electron/**`, or build config.
 
 Workspace-global rules (security, TDD, backend contract) live in `../../AGENTS.md`.
 
@@ -18,14 +18,14 @@ Workspace-global rules (security, TDD, backend contract) live in `../../AGENTS.m
 
 ## 1. Context and Goals
 
-The backoffice is a **desktop Electron app** for internal operations staff — KYC review, transaction monitoring, and related ops workflows (phased). It is **not** the end-user mobile client (`manda-app/`).
+The backoffice is a **desktop Electron app** for internal operations staff — KYC review, transaction monitoring, escrow/payout actions. It is **not** the end-user mobile client (`manda-app/`). Do not apply Expo, SecureStore, or expo-router patterns here.
 
-| Concern           | Decision                                                                    |
-| ----------------- | --------------------------------------------------------------------------- |
-| Target            | Desktop (Linux / macOS / Windows) via Electron                              |
-| Backend           | `manda` api service on port 3000 — staff JWT namespace (`STAFF_JWT_SECRET`) |
-| Phase C (current) | Staff auth flow + minimal authenticated shell only                          |
-| Deferred          | KYC queue/detail, transaction list/detail, search, ops actions              |
+| Concern       | Decision                                                                  |
+| ------------- | ------------------------------------------------------------------------- |
+| Target        | Desktop (Linux / macOS / Windows) via Electron                            |
+| Backend       | `manda` api — staff JWT namespace (`STAFF_JWT_SECRET`), routes `/staff/*` |
+| Current scope | Staff auth, app shell, **transactions** list/detail + ops actions         |
+| Next          | KYC queue/detail, global search, dispute resolution                       |
 
 ---
 
@@ -34,9 +34,9 @@ The backoffice is a **desktop Electron app** for internal operations staff — K
 | Decision        | Choice                                            | Rationale                                                       |
 | --------------- | ------------------------------------------------- | --------------------------------------------------------------- |
 | Shell           | Electron 39 + electron-vite 4                     | Native desktop; Vite HMR for renderer                           |
-| UI              | React 19 + TypeScript strict                      | Same mental model as mobile client                              |
+| UI              | React 19 + TypeScript strict                      | Desktop DOM — not React Native / Expo                           |
 | Routing         | `react-router-dom` v7 (`createBrowserRouter`)     | Guards for `/login` vs protected `/`                            |
-| Server state    | TanStack Query v5                                 | Mirrors `manda-app` retry/stale defaults                        |
+| Server state    | TanStack Query v5                                 | Same retry/stale policy as workspace standard                   |
 | HTTP            | Axios + interceptors in `shared/api/client.ts`    | Single-flight staff refresh on 401                              |
 | Token storage   | Electron `safeStorage` via preload IPC            | OS keychain-backed; renderer never touches raw files            |
 | Styling         | **CSS modules** + `:root` tokens in `global.css`  | No inline `style` except dynamic CSS vars (e.g. avatar palette) |
@@ -67,7 +67,10 @@ backoffice/
 │   ├── shared/
 │   │   ├── theme/manda-theme.ts       # TS palette (prefer CSS vars for styling)
 │   │   ├── ui/                        # design-system atoms (*.tsx + *.module.css)
-│   │   └── api/                       # axios client, ApiError
+│   │   ├── api/                       # axios client, ApiError, generated OpenAPI types
+│   │   │   ├── client.ts
+│   │   │   ├── api-error.ts
+│   │   │   └── generated/             # staff-api.ts from `npm run api:types`
 │   └── features/
 │       ├── auth/                      # staff login/session
 │       │   ├── api/                   # staff-auth.ts, types.ts
@@ -76,8 +79,11 @@ backoffice/
 │       │   ├── components/            # guards, login-form, splash-gate
 │       │   ├── pages/                 # login-page
 │       │   └── index.ts               # public exports (useAuth, guards, LoginPage)
-│       └── shell/                     # authenticated chrome (sidebar, topbar, home)
-│           ├── components/
+│       ├── shell/                     # authenticated chrome (sidebar, topbar, home)
+│       │   ├── components/
+│       │   └── pages/
+│       └── transactions/              # list, detail, confirm-escrow, mark-payout
+│           ├── api/
 │           └── pages/
 └── .env.example                       # VITE_API_URL
 ```
@@ -88,9 +94,9 @@ backoffice/
 | -------------------------- | ----------------------------------------------------------------------------------------------------------- |
 | Feature owns its domain    | Each `features/<name>/` folder owns `api/`, `components/`, `pages/`, `providers/`, `hooks/` as needed       |
 | No cross-feature internals | e.g. `features/shell/` imports `useAuth` from `features/auth/index.ts` — not deep paths into auth internals |
-| `shared/` is generic       | Tokens, UI atoms, HTTP infra — no KYC/transaction/staff business rules                                      |
+| `shared/` is generic       | Tokens, UI atoms, HTTP infra — no domain-specific business rules in `shared/`                               |
 | `app/` wires only          | Providers, router — no forms, no API calls                                                                  |
-| Future features            | `features/kyc/`, `features/transactions/` added in later phases with the same layout                        |
+| Future features            | `features/kyc/` with the same layout as `auth/` and `transactions/`                                         |
 
 ---
 
@@ -109,11 +115,13 @@ backoffice/
 
 ## 5. Routing Model
 
-| Path     | Guard                                                 | Page                         |
-| -------- | ----------------------------------------------------- | ---------------------------- |
-| `/login` | `GuestGuard` → redirect to `/` if authenticated       | `LoginPage`                  |
-| `/`      | `AuthGuard` → redirect to `/login` if unauthenticated | `HomePage` inside `AppShell` |
-| `*`      | —                                                     | redirect to `/`              |
+| Path                | Guard        | Page                     |
+| ------------------- | ------------ | ------------------------ |
+| `/login`            | `GuestGuard` | `LoginPage`              |
+| `/`                 | `AuthGuard`  | `HomePage` in `AppShell` |
+| `/transactions`     | `AuthGuard`  | `TransactionsListPage`   |
+| `/transactions/:id` | `AuthGuard`  | `TransactionDetailPage`  |
+| `*`                 | —            | redirect to `/`          |
 
 **Provider order in `App.tsx`:**
 
@@ -155,12 +163,16 @@ QueryClientProvider
 
 ### Endpoints (staff namespace)
 
-| Call    | Method | Path                  | Notes                                          |
-| ------- | ------ | --------------------- | ---------------------------------------------- |
-| login   | POST   | `/staff/auth/login`   | no bearer                                      |
-| me      | GET    | `/staff/auth/me`      | staff JWT                                      |
-| refresh | POST   | `/staff/auth/refresh` | bare `refreshClient`, no interceptor recursion |
-| logout  | POST   | `/staff/auth/logout`  | bearer + `{ refreshToken }`                    |
+| Call    | Method | Path                                     | Notes                     |
+| ------- | ------ | ---------------------------------------- | ------------------------- |
+| login   | POST   | `/staff/auth/login`                      | no bearer                 |
+| me      | GET    | `/staff/auth/me`                         | staff JWT                 |
+| refresh | POST   | `/staff/auth/refresh`                    | bare `refreshClient`      |
+| logout  | POST   | `/staff/auth/logout`                     | bearer + refresh body     |
+| list tx | GET    | `/staff/transactions`                    | filters: status, from, to |
+| tx      | GET    | `/staff/transactions/:id`                | detail + comprovativos    |
+| escrow  | POST   | `/staff/transactions/:id/confirm-escrow` | ops role                  |
+| payout  | POST   | `/staff/transactions/:id/mark-payout`    | ops role                  |
 
 ### Interceptor rules
 
@@ -189,19 +201,19 @@ Keys are distinct from end-user mobile: encrypted payload holds `accessToken` + 
 
 ## 9. Styling
 
-| Rule                | Detail                                                                                                |
-| ------------------- | ----------------------------------------------------------------------------------------------------- |
-| CSS modules         | Co-located `*.module.css` per component/page                                                          |
-| Design tokens       | `:root { --manda-green: … }` in `src/app/global.css` — use `var(--manda-*)` in modules                |
-| No inline styles    | Avoid `style={{ … }}` for layout/theme; exception: dynamic CSS custom properties (avatar hash colors) |
-| Shared atoms        | `shared/ui/` — `PrimaryButton`, `TextField`, `Avatar`, `MandaGlyph`, `MandaWordmark`, `LoadingScreen` |
-| Prototype reference | `tmp/manda/screens-backoffice.jsx` for visual intent (not copy-paste JSX styles)                      |
+| Rule                | Detail                                                                                                                       |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| CSS modules         | Co-located `*.module.css` per component/page                                                                                 |
+| Design tokens       | `:root { --manda-green: … }` in `src/app/global.css` — use `var(--manda-*)` in modules                                       |
+| No inline styles    | Avoid `style={{ … }}` for layout/theme; exception: dynamic CSS custom properties (avatar hash colors)                        |
+| Shared atoms        | `shared/ui/` — `PrimaryButton`, `TextField`, `Avatar`, `MandaGlyph`, `MandaWordmark`, `LoadingScreen`, `ConfirmDangerDialog` |
+| Prototype reference | `tmp/manda/screens-backoffice.jsx` — backoffice only; ignore mobile `screens-*.jsx` copies in same folder                    |
 
 ---
 
 ## 10. TanStack Query Defaults (`app/query-client.ts`)
 
-Same policy as mobile: **never retry 4xx**, retry transient errors up to 2×, `refetchOnWindowFocus: false`, mutations `retry: false`.
+Same policy as workspace standard: **never retry 4xx**, retry transient errors up to 2×, `refetchOnWindowFocus: false`, mutations `retry: false`.
 
 ---
 
@@ -242,14 +254,14 @@ Ensure `manda/.env` has `STAFF_JWT_SECRET` (32+ chars, distinct from `JWT_SECRET
 
 ## 13. Deferred to Post-MVP
 
-| Feature                     | Phase                             |
-| --------------------------- | --------------------------------- |
-| KYC queue + detail          | `features/kyc/`                   |
-| Transaction list + detail   | `features/transactions/`          |
-| Global search               | shell topbar                      |
-| MFA / staff password reset  | backend + UI when endpoints exist |
-| Code signing / auto-update  | production distribution           |
-| E2E (Playwright / Spectron) | after core flows stabilise        |
+| Feature                    | Notes                                                   |
+| -------------------------- | ------------------------------------------------------- |
+| KYC queue + detail         | `features/kyc/` — prototype in `screens-backoffice.jsx` |
+| Global search              | shell topbar                                            |
+| Dispute resolution UI      | when `resolve-dispute` endpoint ships                   |
+| MFA / staff password reset | backend + UI when endpoints exist                       |
+| Code signing / auto-update | production distribution                                 |
+| E2E (Playwright)           | after core flows stabilise                              |
 
 ---
 
@@ -258,3 +270,4 @@ Ensure `manda/.env` has `STAFF_JWT_SECRET` (32+ chars, distinct from `JWT_SECRET
 | Version | Date       | Change                                                                                       |
 | ------- | ---------- | -------------------------------------------------------------------------------------------- |
 | 1.0     | 2026-06-28 | Initial backoffice ADR — Electron, feature layout, staff auth, CSS modules, safeStorage IPC. |
+| 1.1     | 2026-07-09 | Transactions feature, staff API table, routes; clarify not manda-app; design ref scope.      |

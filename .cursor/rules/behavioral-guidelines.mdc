@@ -49,6 +49,7 @@ Before writing or modifying code that touches authentication, authorization, sta
 ### 1.3 Backoffice-specific
 
 - Staff tokens use **`STAFF_JWT_SECRET`** on the backend — distinct from end-user `JWT_SECRET`. A mobile user JWT must return 401 on `/staff/auth/me`.
+- **Do not copy auth/storage patterns from `manda-app/`** — backoffice uses Electron `safeStorage` + preload IPC, not Expo SecureStore.
 - Axios request interceptor skips `/staff/auth/login` and `/staff/auth/refresh` — preserve that exclusion.
 - Refresh uses a **separate bare client** (`refreshClient`) so a 401 on refresh cannot recurse through the response interceptor.
 - TanStack Query is configured to **never retry 4xx**. A 401 on `/staff/auth/me` must not loop — only the axios refresh interceptor retries once.

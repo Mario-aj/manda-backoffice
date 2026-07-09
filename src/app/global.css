@@ -26,6 +26,7 @@
   --manda-danger-soft: #fce9e6;
 
   --manda-font: "Plus Jakarta Sans", -apple-system, system-ui, sans-serif;
+  --manda-font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 }
 
 html,

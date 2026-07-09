@@ -84,9 +84,6 @@ export function Sidebar() {
             <>
               <Icon />
               <span className={styles.navItemLabel}>{item.label}</span>
-              {disabled ? (
-                <span className={styles.navItemBadge}>Em breve</span>
-              ) : null}
             </>
           );
 
@@ -97,7 +94,6 @@ export function Sidebar() {
                 className={[styles.navItem, styles.navItemDisabled]
                   .filter(Boolean)
                   .join(" ")}
-                title="Em breve"
               >
                 {content}
               </div>

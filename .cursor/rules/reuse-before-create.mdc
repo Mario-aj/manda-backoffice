@@ -5,78 +5,85 @@ alwaysApply: true
 
 # Reuse Before Create
 
-Before adding a component, hook, utility, or helper, **search the project first**. Extend or reuse what already exists instead of duplicating logic.
+Before adding a component, hook, utility, or helper, **search this project first**. Extend or reuse what exists — do not copy patterns from `manda-app/`.
 
 ## Required workflow
 
-1. **Search** — grep or semantic search for similar names, behavior, or patterns under `src/features/`, `src/shared/`, `src/app/`.
-2. **Reuse** — import from the feature's public barrel (`features/auth/index.ts`) or `shared/ui/` when it fits.
-3. **Extract** — if the same logic appears in two places, extract to `shared/` or the owning feature's `hooks/` / `api/`.
-4. **Create new** — only when nothing suitable exists and extraction is not warranted.
+1. **Search** — grep or semantic search under `src/features/`, `src/shared/`, `src/app/`.
+2. **Reuse** — import from feature barrels (`features/auth/index.ts`) or `shared/ui/`.
+3. **Extract** — if the same logic appears twice, extract to `shared/` or the owning feature's `api/` / `hooks/`.
+4. **Create new** — only when nothing suitable exists.
 
 ## Where to look
 
 | Need                              | Check first                                                                                           |
 | --------------------------------- | ----------------------------------------------------------------------------------------------------- |
 | Staff auth / session              | `features/auth/` — `useAuth`, guards, `staff-auth.ts`, `staff-storage.ts`                             |
-| App chrome (sidebar, shell)       | `features/shell/components/`                                                                          |
+| App chrome (sidebar, shell)       | `features/shell/components/` — `Sidebar`, `Topbar`, `AppShell`                                        |
+| Transactions (ops)                | `features/transactions/` — list/detail pages, `api/transactions.ts`                                   |
+| Destructive ops confirmation      | `shared/ui/confirm-danger-dialog.tsx`                                                                 |
 | UI atoms (buttons, fields, brand) | `shared/ui/` — `PrimaryButton`, `TextField`, `Avatar`, `MandaGlyph`, `MandaWordmark`, `LoadingScreen` |
 | HTTP / errors                     | `shared/api/client.ts`, `shared/api/api-error.ts`                                                     |
-| Design tokens                     | `src/app/global.css` (`--manda-*`), then `shared/theme/manda-theme.ts` for TS-only use                |
+| API types (staff OpenAPI)         | `shared/api/generated/` — regenerate with `npm run api:types`                                         |
+| Design tokens                     | `src/app/global.css` (`--manda-*`)                                                                    |
 | Route wiring                      | `app/router.tsx`, `app/App.tsx`                                                                       |
 | Query defaults                    | `app/query-client.ts`                                                                                 |
 | Electron / tokens                 | `electron/main.ts`, `electron/preload.ts` — don't duplicate IPC in renderer                           |
-| Visual reference (not copy-paste) | `tmp/manda/screens-backoffice.jsx`, `tmp/manda/brand.jsx`                                             |
+| Visual reference (backoffice)     | `tmp/manda/screens-backoffice.jsx` only                                                               |
+
+**Not backoffice references:** `tmp/manda/screens-auth.jsx`, `screens-chat.jsx`, etc. are mobile prototypes — see `manda-app/` for those.
 
 ## Feature layout
 
-New domain work goes in **`features/<name>/`** with the same internal shape as `auth/` and `shell/`:
+New domain work goes in **`features/<name>/`**:
 
 ```
 features/kyc/
 ├── api/
 ├── components/
 ├── pages/
-└── index.ts          # public exports for app/ and other features
+└── index.ts          # optional public exports
 ```
 
-Do **not** import another feature's internal files — use its barrel export or move shared code to `shared/`.
+Do **not** import another feature's internal files — use its barrel or move shared code to `shared/`.
 
 ## Styling
 
-- Add or extend a co-located **`*.module.css`** — don't introduce inline `style={{ … }}` for layout/theme.
-- Use existing `--manda-*` CSS variables from `global.css` before adding new hex values.
-- Reuse `shared/ui/` atoms before creating one-off styled elements.
+- Co-located **`*.module.css`** — no inline `style={{ … }}` for layout/theme.
+- Use `--manda-*` from `global.css` before new hex values.
+- Reuse `shared/ui/` before one-off styled elements.
 
 ## Examples
 
 ```tsx
-// ❌ BAD — duplicate loading UI in a guard
-if (loading) return <div style={{ height: "100vh" }}>A carregar…</div>;
+// ❌ BAD — duplicate confirm modal
+{
+  open && <div className="overlay">...</div>;
+}
 
-// ✅ GOOD — reuse shared atom
-import { LoadingScreen } from "@/shared/ui/loading-screen";
-if (loading) return <LoadingScreen>A carregar…</LoadingScreen>;
+// ✅ GOOD
+import { ConfirmDangerDialog } from "@/shared/ui/confirm-danger-dialog";
 ```
 
 ```tsx
-// ❌ BAD — raw axios in a feature page
-const res = await axios.get("/staff/auth/me");
+// ❌ BAD — raw axios in a page
+await axios.post(`/staff/transactions/${id}/confirm-escrow`);
 
-// ✅ GOOD — feature API + shared client
-import { fetchMe } from "@/features/auth/api/staff-auth";
+// ✅ GOOD
+import { confirmTransactionEscrow } from "@/features/transactions/api/transactions";
 ```
 
 ```tsx
-// ❌ BAD — deep import into another feature's internals
-import { AuthProvider } from "@/features/auth/providers/auth-provider";
+// ❌ BAD — manda-app pattern
+import { useAuth } from "@/providers/auth-provider";
+import * as SecureStore from "expo-secure-store";
 
-// ✅ GOOD — public barrel (when exported)
+// ✅ GOOD — backoffice
 import { useAuth } from "@/features/auth";
+import { staffStorage } from "@/features/auth/storage/staff-storage";
 ```
 
 ## When generalizing
 
-- Prefer **one flexible component/hook** over near-identical copies.
-- Keep shared APIs small; add optional params only when a second caller needs them.
-- After extracting, delete the inlined duplicate and update imports.
+- Prefer one flexible component over near-identical copies.
+- After extracting to `shared/ui/`, delete inlined duplicates.
