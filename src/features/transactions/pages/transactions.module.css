@@ -307,3 +307,452 @@
 .backLink:hover {
   color: var(--manda-green-deep);
 }
+
+/* ── Detail page (BOTxDetail design match) ── */
+
+.detailHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.backBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  border-radius: 17px;
+  border: 1px solid var(--manda-card-border);
+  background: var(--manda-white);
+  color: var(--manda-ink);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.backBtn:hover {
+  background: var(--manda-paper);
+}
+
+.detailRef {
+  font-family: var(--manda-font-mono);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--manda-green-deep);
+}
+
+.detailStatusNote {
+  font-size: 12.5px;
+  color: #1a4f6e;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.detailColumns {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  margin: 0 auto;
+}
+
+.detailColLeft {
+  min-width: 380px;
+  width: fit-content;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.detailColMid {
+  flex: 1;
+  min-width: 0;
+}
+
+.detailColRight {
+  min-width: 250px;
+  max-width: 250px;
+  flex-shrink: 0;
+  width: 250px;
+}
+
+/* ── Resumo card ── */
+
+.card {
+  background: var(--manda-white);
+  border: 1px solid var(--manda-card-border);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.cardTitle {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--manda-ink-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.buyerSellerRow {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.buyerSellerBlock {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.buyerSellerInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.buyerSellerInfoRight {
+  flex: 1;
+  min-width: 0;
+  text-align: right;
+}
+
+.buyerSellerName {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--manda-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.buyerSellerRole {
+  font-size: 11.5px;
+  color: var(--manda-ink-muted);
+}
+
+.exchangeIconWrap {
+  flex-shrink: 0;
+  color: var(--manda-ink-subtle);
+  display: flex;
+  align-items: center;
+}
+
+.summaryRows {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--manda-divider);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.summaryRow {
+  display: flex;
+  justify-content: space-between;
+}
+
+.summaryKey {
+  font-size: 12.5px;
+  color: var(--manda-ink-muted);
+}
+
+.summaryVal {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--manda-ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.bankSnapshot {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: var(--manda-paper);
+}
+
+.bankSnapshotTitle {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--manda-ink-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.bankSnapshotName {
+  font-size: 12.5px;
+  color: var(--manda-ink);
+  font-weight: 700;
+  margin-top: 3px;
+}
+
+.bankSnapshotIban {
+  font-family: var(--manda-font-mono);
+  font-size: 12px;
+  color: var(--manda-ink-muted);
+  margin-top: 2px;
+}
+
+/* ── Comprovativos ── */
+
+.comprovGrid3 {
+  margin-top: 12px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.comprovTileWrap {
+  text-align: center;
+}
+
+.comprovTileActive {
+  height: 74px;
+  border-radius: 11px;
+  background: var(--manda-green-soft);
+  border: 1px solid #cfe8da;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: zoom-in;
+  color: var(--manda-green-deep);
+  width: 100%;
+}
+
+.comprovTilePending {
+  height: 74px;
+  border-radius: 11px;
+  background: var(--manda-paper);
+  border: 1px solid var(--manda-card-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--manda-ink-subtle);
+}
+
+.comprovTilePendingText {
+  font-size: 10.5px;
+  font-weight: 700;
+}
+
+.comprovTileLabel {
+  font-size: 10.5px;
+  color: var(--manda-ink-muted);
+  margin-top: 5px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.lockNote {
+  margin-top: 10px;
+  font-size: 11px;
+  color: var(--manda-ink-subtle);
+  display: flex;
+  gap: 6px;
+  line-height: 1.4;
+}
+
+/* ── Timeline ── */
+
+.timelineCard {
+  background: var(--manda-white);
+  border: 1px solid var(--manda-card-border);
+  border-radius: 16px;
+  padding: 20px;
+}
+
+.timelineTitle {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: var(--manda-ink-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 14px;
+}
+
+.timelineStep {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.timelineStepCol {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 20px;
+}
+
+.timelineDot {
+  width: 18px;
+  height: 18px;
+  border-radius: 9px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.timelineDotDone {
+  background: var(--manda-green);
+  border: 2px solid var(--manda-green);
+}
+
+.timelineDotCurrent {
+  background: var(--manda-white);
+  border: 2px solid var(--manda-green);
+  box-shadow: 0 0 0 4px var(--manda-green-soft);
+}
+
+.timelineDotFuture {
+  background: var(--manda-white);
+  border: 2px solid var(--manda-card-border);
+}
+
+.timelineLine {
+  width: 2px;
+  flex: 1;
+  min-height: 18px;
+}
+
+.timelineLineDone {
+  background: var(--manda-green);
+}
+
+.timelineLineFuture {
+  background: var(--manda-divider);
+}
+
+.timelineStepBody {
+  padding-bottom: 14px;
+}
+
+.timelineLabel {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--manda-ink);
+}
+
+.timelineLabelCurrent {
+  font-weight: 800;
+}
+
+.timelineLabelFuture {
+  color: var(--manda-ink-subtle);
+}
+
+.timelineCurrentMark {
+  font-size: 11.5px;
+  font-weight: 800;
+  color: #1a4f6e;
+  margin-top: 2px;
+}
+
+.timelineBranchNote {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border-radius: 11px;
+  background: var(--manda-paper);
+  font-size: 11.5px;
+  color: var(--manda-ink-muted);
+  line-height: 1.45;
+}
+
+/* ── Acções de ops ── */
+
+.actionCard {
+  background: var(--manda-white);
+  border: 1px solid var(--manda-card-border);
+  border-radius: 16px;
+  padding: 18px;
+}
+
+.actionDescription {
+  font-size: 11.5px;
+  color: var(--manda-ink-muted);
+  margin-top: 6px;
+  line-height: 1.4;
+}
+
+.actionList {
+  margin-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.actionOutlineBtn {
+  height: 42px;
+  border-radius: 21px;
+  border: 1.5px solid var(--manda-card-border);
+  background: var(--manda-white);
+  color: var(--manda-ink-muted);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0 20px;
+  width: 100%;
+}
+
+.actionOutlineBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.actionDangerBtn {
+  height: 42px;
+  border-radius: 21px;
+  border: 1.5px solid var(--manda-danger);
+  background: var(--manda-white);
+  color: var(--manda-danger);
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 800;
+  cursor: pointer;
+  padding: 0 20px;
+  width: 100%;
+}
+
+.actionDangerBtn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.actionSubList {
+  padding-left: 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.actionSubItem {
+  font-size: 12px;
+  color: var(--manda-ink-muted);
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.actionBullet {
+  width: 5px;
+  height: 5px;
+  border-radius: 3px;
+  background: var(--manda-ink-subtle);
+  flex-shrink: 0;
+}
+
+.actionAuditNote {
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid var(--manda-divider);
+  font-size: 11px;
+  color: var(--manda-ink-subtle);
+  line-height: 1.45;
+}
