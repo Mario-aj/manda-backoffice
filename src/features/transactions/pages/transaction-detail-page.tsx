@@ -1,14 +1,32 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import {
   confirmTransactionEscrow,
   fetchComprovativoReadUrl,
   fetchStaffTransaction,
+  markTransactionPayout,
 } from "@/features/transactions/api/transactions";
+import { ConfirmDangerDialog } from "@/shared/ui/confirm-danger-dialog";
 import { PrimaryButton } from "@/shared/ui/primary-button";
 import { ApiError } from "@/shared/api/api-error";
 import styles from "./transactions.module.css";
+
+const STATUS_LABELS: Record<string, string> = {
+  proposta: "Proposta",
+  rejeitada: "Rejeitada",
+  proposta_expirada: "Proposta expirada",
+  a_aguardar_pagamento_comprador: "Aguardando pagamento",
+  comprador_pagou_pendente_ops: "Aguardando ops",
+  escrow_confirmado: "Escrow confirmado",
+  vendedor_enviou_pendente: "Vendedor enviou",
+  comprador_confirmou_rececao: "Comprador confirmou receção",
+  payout_pendente: "Payout pendente",
+  concluida: "Concluída",
+  cancelada: "Cancelada",
+  disputa: "Disputa",
+};
 
 function formatKz(value: number): string {
   return `${value.toLocaleString("pt-PT")} Kz`;
@@ -17,6 +35,8 @@ function formatKz(value: number): string {
 export function TransactionDetailPage() {
   const { id = "" } = useParams();
   const qc = useQueryClient();
+  const [confirmEscrowOpen, setConfirmEscrowOpen] = useState(false);
+  const [markPayoutOpen, setMarkPayoutOpen] = useState(false);
 
   const query = useQuery({
     queryKey: ["staff", "transactions", id],
@@ -24,17 +44,30 @@ export function TransactionDetailPage() {
     enabled: Boolean(id),
   });
 
-  const confirmMutation = useMutation({
+  const confirmEscrowMutation = useMutation({
     mutationFn: () => confirmTransactionEscrow(id),
     onSuccess: () => {
+      setConfirmEscrowOpen(false);
+      void qc.invalidateQueries({ queryKey: ["staff", "transactions"] });
+      void qc.invalidateQueries({ queryKey: ["staff", "transactions", id] });
+    },
+  });
+
+  const markPayoutMutation = useMutation({
+    mutationFn: () => markTransactionPayout(id),
+    onSuccess: () => {
+      setMarkPayoutOpen(false);
       void qc.invalidateQueries({ queryKey: ["staff", "transactions"] });
       void qc.invalidateQueries({ queryKey: ["staff", "transactions", id] });
     },
   });
 
   const tx = query.data;
-  const canConfirm =
-    tx?.status === "comprador_pagou_pendente_ops" && !confirmMutation.isPending;
+  const canConfirmEscrow =
+    tx?.status === "comprador_pagou_pendente_ops" &&
+    !confirmEscrowMutation.isPending;
+  const canMarkPayout =
+    tx?.status === "payout_pendente" && !markPayoutMutation.isPending;
 
   const openComprovativo = async (uploadId: string) => {
     try {
@@ -51,6 +84,43 @@ export function TransactionDetailPage() {
 
   return (
     <div className={styles.txPage}>
+      <ConfirmDangerDialog
+        open={confirmEscrowOpen}
+        title="Confirmar Kz recebido"
+        message={
+          <>
+            Confirme apenas após cruzar comprovativo, referência{" "}
+            <strong>{tx?.refCode}</strong> e extrato real. Esta acção avança a
+            transação para escrow confirmado.
+          </>
+        }
+        confirmLabel="Confirmar Kz recebido"
+        loading={confirmEscrowMutation.isPending}
+        onCancel={() => {
+          if (!confirmEscrowMutation.isPending) setConfirmEscrowOpen(false);
+        }}
+        onConfirm={() => confirmEscrowMutation.mutate()}
+      />
+
+      <ConfirmDangerDialog
+        open={markPayoutOpen}
+        title="Marcar payout feito"
+        message={
+          <>
+            Confirme apenas após transferir{" "}
+            <strong>{tx ? formatKz(tx.sellerReceivesKz) : ""}</strong> Kz para o
+            vendedor e cruzar com o extrato de saída. Esta acção conclui a
+            transação <strong>{tx?.refCode}</strong>.
+          </>
+        }
+        confirmLabel="Marcar payout feito"
+        loading={markPayoutMutation.isPending}
+        onCancel={() => {
+          if (!markPayoutMutation.isPending) setMarkPayoutOpen(false);
+        }}
+        onConfirm={() => markPayoutMutation.mutate()}
+      />
+
       <Link className={styles.backLink} to="/transactions">
         ← Transações
       </Link>
@@ -71,9 +141,7 @@ export function TransactionDetailPage() {
               <p className={styles.lead}>
                 Estado:{" "}
                 <span className={styles.badge}>
-                  {tx.status === "comprador_pagou_pendente_ops"
-                    ? "Aguardando ops"
-                    : tx.status}
+                  {STATUS_LABELS[tx.status] ?? tx.status}
                 </span>
               </p>
             </div>
@@ -123,23 +191,37 @@ export function TransactionDetailPage() {
             <div className={styles.card}>
               <div className={styles.cardTitle}>Acções de ops</div>
               <p className={styles.lead}>
-                Confirme apenas após cruzar comprovativo, referência{" "}
-                {tx.refCode} e extrato real.
+                Confirme Kz recebidos ou marque payout ao vendedor apenas após
+                cruzar comprovativos, referência {tx.refCode} e extrato real.
               </p>
               <div className={styles.actions}>
                 <PrimaryButton
                   full
-                  disabled={!canConfirm}
-                  loading={confirmMutation.isPending}
-                  onClick={() => confirmMutation.mutate()}
+                  disabled={!canConfirmEscrow}
+                  onClick={() => setConfirmEscrowOpen(true)}
                 >
                   Confirmar Kz recebido
                 </PrimaryButton>
-                {confirmMutation.isError ? (
+                {confirmEscrowMutation.isError ? (
                   <div className={styles.error}>
-                    {confirmMutation.error instanceof ApiError
-                      ? confirmMutation.error.message
+                    {confirmEscrowMutation.error instanceof ApiError
+                      ? confirmEscrowMutation.error.message
                       : "Falha ao confirmar escrow."}
+                  </div>
+                ) : null}
+
+                <PrimaryButton
+                  full
+                  disabled={!canMarkPayout}
+                  onClick={() => setMarkPayoutOpen(true)}
+                >
+                  Marcar payout feito
+                </PrimaryButton>
+                {markPayoutMutation.isError ? (
+                  <div className={styles.error}>
+                    {markPayoutMutation.error instanceof ApiError
+                      ? markPayoutMutation.error.message
+                      : "Falha ao marcar payout."}
                   </div>
                 ) : null}
               </div>

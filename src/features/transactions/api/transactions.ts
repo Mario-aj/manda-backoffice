@@ -6,11 +6,22 @@ import type {
 
 export type { StaffTransactionDetailDto, TransactionSummaryDto };
 
+export type StaffTransactionFilters = {
+  status?: string;
+  from?: string;
+  to?: string;
+};
+
 export async function fetchStaffTransactions(
-  status?: string
+  filters: StaffTransactionFilters = {}
 ): Promise<TransactionSummaryDto[]> {
+  const params: Record<string, string> = {};
+  if (filters.status) params.status = filters.status;
+  if (filters.from) params.from = filters.from;
+  if (filters.to) params.to = filters.to;
+
   const res = await api.get<TransactionSummaryDto[]>("/staff/transactions", {
-    params: status ? { status } : undefined,
+    params: Object.keys(params).length ? params : undefined,
   });
   return res.data;
 }
@@ -29,6 +40,15 @@ export async function confirmTransactionEscrow(
 ): Promise<TransactionSummaryDto> {
   const res = await api.post<TransactionSummaryDto>(
     `/staff/transactions/${id}/confirm-escrow`
+  );
+  return res.data;
+}
+
+export async function markTransactionPayout(
+  id: string
+): Promise<TransactionSummaryDto> {
+  const res = await api.post<TransactionSummaryDto>(
+    `/staff/transactions/${id}/mark-payout`
   );
   return res.data;
 }

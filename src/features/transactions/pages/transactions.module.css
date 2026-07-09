@@ -24,6 +24,41 @@
   margin-top: 4px;
 }
 
+.filters {
+  display: grid;
+  grid-template-columns: minmax(180px, 240px) repeat(2, minmax(160px, 220px));
+  gap: 12px;
+  align-items: end;
+}
+
+.filterField {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.filterLabel {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--manda-ink-subtle);
+}
+
+.filterSelect {
+  width: 100%;
+  border: 1px solid var(--manda-card-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  background: var(--manda-white);
+  color: var(--manda-ink);
+  font-size: 13.5px;
+  font-weight: 600;
+}
+
+.filterSelect:focus {
+  outline: 2px solid rgba(11, 77, 47, 0.18);
+  outline-offset: 1px;
+}
+
 .tableWrap {
   background: var(--manda-white);
   border: 1px solid var(--manda-card-border);

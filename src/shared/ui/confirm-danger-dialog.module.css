@@ -1,0 +1,80 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(11, 30, 20, 0.45);
+}
+
+.dialog {
+  width: min(100%, 420px);
+  background: var(--manda-white);
+  border: 1px solid var(--manda-card-border);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: 0 18px 48px rgba(11, 77, 47, 0.12);
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--manda-ink);
+  letter-spacing: -0.3px;
+}
+
+.message {
+  margin-top: 10px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--manda-ink-muted);
+}
+
+.actions {
+  margin-top: 20px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.cancelButton {
+  border: 1px solid var(--manda-card-border);
+  border-radius: 12px;
+  padding: 10px 16px;
+  background: var(--manda-white);
+  color: var(--manda-ink);
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.cancelButton:hover:not(:disabled) {
+  background: var(--manda-paper);
+}
+
+.cancelButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.confirmButton {
+  border: none;
+  border-radius: 12px;
+  padding: 10px 16px;
+  background: var(--manda-danger);
+  color: var(--manda-white);
+  font-weight: 800;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.confirmButton:hover:not(:disabled) {
+  filter: brightness(0.95);
+}
+
+.confirmButton:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+}

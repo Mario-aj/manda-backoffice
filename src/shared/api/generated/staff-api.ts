@@ -132,6 +132,22 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/staff/transactions/{id}/mark-payout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["staff_StaffTransactionsController_markPayout"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/staff/transactions/{transactionId}/comprovativos/{uploadId}/read-url": {
         parameters: {
             query?: never;
@@ -430,6 +446,10 @@ export interface operations {
         parameters: {
             query?: {
                 status?: "proposta" | "rejeitada" | "proposta_expirada" | "a_aguardar_pagamento_comprador" | "comprador_pagou_pendente_ops" | "escrow_confirmado" | "vendedor_enviou_pendente" | "comprador_confirmou_rececao" | "payout_pendente" | "concluida" | "cancelada" | "disputa";
+                /** @description Inclusive start date (YYYY-MM-DD) */
+                from?: string;
+                /** @description Inclusive end date (YYYY-MM-DD) */
+                to?: string;
             };
             header?: never;
             path?: never;
@@ -469,6 +489,27 @@ export interface operations {
         };
     };
     staff_StaffTransactionsController_confirmEscrow: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionSummaryDto"];
+                };
+            };
+        };
+    };
+    staff_StaffTransactionsController_markPayout: {
         parameters: {
             query?: never;
             header?: never;
