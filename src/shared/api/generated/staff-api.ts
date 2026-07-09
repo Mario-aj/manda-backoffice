@@ -4,554 +4,614 @@
  */
 
 export interface paths {
-    "/staff/auth/login": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["staff_StaffAuthController_login"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+  "/staff/auth/login": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/staff/auth/refresh": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["staff_StaffAuthController_refresh"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations["staff_StaffAuthController_login"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/staff/auth/refresh": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/staff/auth/logout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["staff_StaffAuthController_logout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations["staff_StaffAuthController_refresh"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/staff/auth/logout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/staff/auth/me": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["staff_StaffAuthController_me"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations["staff_StaffAuthController_logout"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/staff/auth/me": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/staff/auth/ops-check": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["staff_StaffAuthController_opsCheck"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations["staff_StaffAuthController_me"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/staff/auth/ops-check": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/staff/transactions": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["staff_StaffTransactionsController_list"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations["staff_StaffAuthController_opsCheck"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/staff/transactions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/staff/transactions/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["staff_StaffTransactionsController_findById"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations["staff_StaffTransactionsController_list"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/staff/transactions/{id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/staff/transactions/{id}/confirm-escrow": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["staff_StaffTransactionsController_confirmEscrow"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get: operations["staff_StaffTransactionsController_findById"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/staff/transactions/{id}/confirm-escrow": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/staff/transactions/{id}/mark-payout": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["staff_StaffTransactionsController_markPayout"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations["staff_StaffTransactionsController_confirmEscrow"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/staff/transactions/{id}/mark-payout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    "/staff/transactions/{transactionId}/comprovativos/{uploadId}/read-url": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["staff_StaffTransactionsController_comprovativoReadUrl"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
+    get?: never;
+    put?: never;
+    post: operations["staff_StaffTransactionsController_markPayout"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/staff/transactions/{transactionId}/comprovativos/{uploadId}/read-url": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    get: operations["staff_StaffTransactionsController_comprovativoReadUrl"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        StaffLoginDto: Record<string, never>;
-        TokenResponseDto: {
-            accessToken: string;
-            refreshToken: string;
-            /**
-             * @example Bearer
-             * @enum {string}
-             */
-            tokenType: "Bearer";
-            /**
-             * @description Access token TTL in seconds
-             * @example 900
-             */
-            expiresIn: number;
-        };
-        StaffRefreshDto: Record<string, never>;
-        StaffLogoutDto: Record<string, never>;
-        StaffProfileResponseDto: {
-            /** Format: uuid */
-            id: string;
-            email: string;
-            fullName: string;
-            /** @enum {string} */
-            role: "ops" | "support" | "compliance" | "superAdmin";
-            /** @enum {string} */
-            status: "active" | "disabled";
-            /** Format: date-time */
-            lastLoginAt?: string | null;
-            /** Format: date-time */
-            createdAt: string;
-        };
-        CompanyBankSnapshotDto: {
-            /** @example BAI */
-            bankName: string;
-            /** @example Manda Escrow */
-            holderName: string;
-            /** @example AO06004000000000000000000 */
-            iban: string;
-            /** @example AOA */
-            currency: string;
-            /** @example MND */
-            referencePrefix?: Record<string, never> | null;
-        };
-        TransactionSummaryDto: {
-            /** Format: uuid */
-            id: string;
-            /** @example MND-8147 */
-            refCode: string;
-            /** @enum {string} */
-            status: "proposta" | "rejeitada" | "proposta_expirada" | "a_aguardar_pagamento_comprador" | "comprador_pagou_pendente_ops" | "escrow_confirmado" | "vendedor_enviou_pendente" | "comprador_confirmou_rececao" | "payout_pendente" | "concluida" | "cancelada" | "disputa";
-            /** @enum {string} */
-            foreignCurrency: "USD" | "EUR" | "BRL" | "RUB" | "USDT";
-            /**
-             * @description Whole foreign units only in MVP (no cents). E.g. 200 USD, 376 EUR.
-             * @example 200
-             */
-            foreignAmount: number;
-            /**
-             * @description Agreed Kz per 1 whole foreign unit (integer). E.g. 875 Kz/USD.
-             * @example 875
-             */
-            exchangeRateKzPerUnit: number;
-            /**
-             * @description Authoritative Kz base (integer).
-             * @example 175000
-             */
-            baseKz: number;
-            /** @example 175875 */
-            buyerPaysKz: number;
-            /** @example 174125 */
-            sellerReceivesKz: number;
-            /** Format: uuid */
-            sellerId: string;
-            /** Format: uuid */
-            buyerId: string;
-            /**
-             * Format: date-time
-             * @description Proposal validity deadline (15 min from creation in MVP).
-             */
-            proposalExpiresAt?: string | null;
-            /**
-             * Format: date-time
-             * @description Payment deadline (15 min from acceptance in MVP).
-             */
-            paymentExpiresAt?: string | null;
-            /** Format: uuid */
-            conversationId?: string;
-            companyBankSnapshot?: components["schemas"]["CompanyBankSnapshotDto"];
-        };
-        ComprovativoSummaryDto: {
-            /** Format: uuid */
-            uploadId: string;
-            /** Format: uuid */
-            ownerId: string;
-            /** @enum {string} */
-            ownerRole: "buyer" | "seller";
-            /** Format: date-time */
-            createdAt: string;
-        };
-        StaffTransactionDetailDto: {
-            /** Format: uuid */
-            id: string;
-            /** @example MND-8147 */
-            refCode: string;
-            /** @enum {string} */
-            status: "proposta" | "rejeitada" | "proposta_expirada" | "a_aguardar_pagamento_comprador" | "comprador_pagou_pendente_ops" | "escrow_confirmado" | "vendedor_enviou_pendente" | "comprador_confirmou_rececao" | "payout_pendente" | "concluida" | "cancelada" | "disputa";
-            /** @enum {string} */
-            foreignCurrency: "USD" | "EUR" | "BRL" | "RUB" | "USDT";
-            /**
-             * @description Whole foreign units only in MVP (no cents). E.g. 200 USD, 376 EUR.
-             * @example 200
-             */
-            foreignAmount: number;
-            /**
-             * @description Agreed Kz per 1 whole foreign unit (integer). E.g. 875 Kz/USD.
-             * @example 875
-             */
-            exchangeRateKzPerUnit: number;
-            /**
-             * @description Authoritative Kz base (integer).
-             * @example 175000
-             */
-            baseKz: number;
-            /** @example 175875 */
-            buyerPaysKz: number;
-            /** @example 174125 */
-            sellerReceivesKz: number;
-            /** Format: uuid */
-            sellerId: string;
-            /** Format: uuid */
-            buyerId: string;
-            /**
-             * Format: date-time
-             * @description Proposal validity deadline (15 min from creation in MVP).
-             */
-            proposalExpiresAt?: string | null;
-            /**
-             * Format: date-time
-             * @description Payment deadline (15 min from acceptance in MVP).
-             */
-            paymentExpiresAt?: string | null;
-            /** Format: uuid */
-            conversationId?: string;
-            companyBankSnapshot?: components["schemas"]["CompanyBankSnapshotDto"];
-            comprovativos: components["schemas"]["ComprovativoSummaryDto"][];
-        };
-        ApiErrorResponseDto: {
-            /** @example 400 */
-            statusCode: number;
-            /** @example Pedido Inválido */
-            error: string;
-            /** @example dados inválidos */
-            message: string;
-            /** @example 2026-07-05T10:00:00.000Z */
-            timestamp: string;
-            /** @example /auth/login */
-            path: string;
-            /** @description Programmatic discriminator (e.g. emailNotVerified) */
-            code?: string;
-            /** @description Present for emailNotVerified flows */
-            email?: string;
-        };
+  schemas: {
+    StaffLoginDto: Record<string, never>;
+    TokenResponseDto: {
+      accessToken: string;
+      refreshToken: string;
+      /**
+       * @example Bearer
+       * @enum {string}
+       */
+      tokenType: "Bearer";
+      /**
+       * @description Access token TTL in seconds
+       * @example 900
+       */
+      expiresIn: number;
     };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+    StaffRefreshDto: Record<string, never>;
+    StaffLogoutDto: Record<string, never>;
+    StaffProfileResponseDto: {
+      /** Format: uuid */
+      id: string;
+      email: string;
+      fullName: string;
+      /** @enum {string} */
+      role: "ops" | "support" | "compliance" | "superAdmin";
+      /** @enum {string} */
+      status: "active" | "disabled";
+      /** Format: date-time */
+      lastLoginAt?: string | null;
+      /** Format: date-time */
+      createdAt: string;
+    };
+    CompanyBankSnapshotDto: {
+      /** @example BAI */
+      bankName: string;
+      /** @example Manda Escrow */
+      holderName: string;
+      /** @example AO06004000000000000000000 */
+      iban: string;
+      /** @example AOA */
+      currency: string;
+      /** @example MND */
+      referencePrefix?: Record<string, never> | null;
+    };
+    TransactionSummaryDto: {
+      /** Format: uuid */
+      id: string;
+      /** @example MND-8147 */
+      refCode: string;
+      /** @enum {string} */
+      status:
+        | "proposta"
+        | "rejeitada"
+        | "proposta_expirada"
+        | "a_aguardar_pagamento_comprador"
+        | "comprador_pagou_pendente_ops"
+        | "escrow_confirmado"
+        | "vendedor_enviou_pendente"
+        | "comprador_confirmou_rececao"
+        | "payout_pendente"
+        | "concluida"
+        | "cancelada"
+        | "disputa";
+      /** @enum {string} */
+      foreignCurrency: "USD" | "EUR" | "BRL" | "RUB" | "USDT";
+      /**
+       * @description Whole foreign units only in MVP (no cents). E.g. 200 USD, 376 EUR.
+       * @example 200
+       */
+      foreignAmount: number;
+      /**
+       * @description Agreed Kz per 1 whole foreign unit (integer). E.g. 875 Kz/USD.
+       * @example 875
+       */
+      exchangeRateKzPerUnit: number;
+      /**
+       * @description Authoritative Kz base (integer).
+       * @example 175000
+       */
+      baseKz: number;
+      /** @example 175875 */
+      buyerPaysKz: number;
+      /** @example 174125 */
+      sellerReceivesKz: number;
+      /** Format: uuid */
+      sellerId: string;
+      /** Format: uuid */
+      buyerId: string;
+      /** Format: date-time */
+      createdAt: string;
+      /**
+       * @description Buyer display name (staff listings and detail).
+       * @example João Cangola
+       */
+      buyerFullName?: string;
+      /**
+       * @description Seller display name (staff listings and detail).
+       * @example Maria Pacheco
+       */
+      sellerFullName?: string;
+      /**
+       * Format: date-time
+       * @description Proposal validity deadline (15 min from creation in MVP).
+       */
+      proposalExpiresAt?: string | null;
+      /**
+       * Format: date-time
+       * @description Payment deadline (15 min from acceptance in MVP).
+       */
+      paymentExpiresAt?: string | null;
+      /** Format: uuid */
+      conversationId?: string;
+      companyBankSnapshot?: components["schemas"]["CompanyBankSnapshotDto"];
+    };
+    ComprovativoSummaryDto: {
+      /** Format: uuid */
+      uploadId: string;
+      /** Format: uuid */
+      ownerId: string;
+      /** @enum {string} */
+      ownerRole: "buyer" | "seller";
+      /** Format: date-time */
+      createdAt: string;
+    };
+    StaffTransactionDetailDto: {
+      /** Format: uuid */
+      id: string;
+      /** @example MND-8147 */
+      refCode: string;
+      /** @enum {string} */
+      status:
+        | "proposta"
+        | "rejeitada"
+        | "proposta_expirada"
+        | "a_aguardar_pagamento_comprador"
+        | "comprador_pagou_pendente_ops"
+        | "escrow_confirmado"
+        | "vendedor_enviou_pendente"
+        | "comprador_confirmou_rececao"
+        | "payout_pendente"
+        | "concluida"
+        | "cancelada"
+        | "disputa";
+      /** @enum {string} */
+      foreignCurrency: "USD" | "EUR" | "BRL" | "RUB" | "USDT";
+      /**
+       * @description Whole foreign units only in MVP (no cents). E.g. 200 USD, 376 EUR.
+       * @example 200
+       */
+      foreignAmount: number;
+      /**
+       * @description Agreed Kz per 1 whole foreign unit (integer). E.g. 875 Kz/USD.
+       * @example 875
+       */
+      exchangeRateKzPerUnit: number;
+      /**
+       * @description Authoritative Kz base (integer).
+       * @example 175000
+       */
+      baseKz: number;
+      /** @example 175875 */
+      buyerPaysKz: number;
+      /** @example 174125 */
+      sellerReceivesKz: number;
+      /** Format: uuid */
+      sellerId: string;
+      /** Format: uuid */
+      buyerId: string;
+      /** Format: date-time */
+      createdAt: string;
+      /**
+       * @description Buyer display name (staff listings and detail).
+       * @example João Cangola
+       */
+      buyerFullName?: string;
+      /**
+       * @description Seller display name (staff listings and detail).
+       * @example Maria Pacheco
+       */
+      sellerFullName?: string;
+      /**
+       * Format: date-time
+       * @description Proposal validity deadline (15 min from creation in MVP).
+       */
+      proposalExpiresAt?: string | null;
+      /**
+       * Format: date-time
+       * @description Payment deadline (15 min from acceptance in MVP).
+       */
+      paymentExpiresAt?: string | null;
+      /** Format: uuid */
+      conversationId?: string;
+      companyBankSnapshot?: components["schemas"]["CompanyBankSnapshotDto"];
+      comprovativos: components["schemas"]["ComprovativoSummaryDto"][];
+    };
+    ApiErrorResponseDto: {
+      /** @example 400 */
+      statusCode: number;
+      /** @example Pedido Inválido */
+      error: string;
+      /** @example dados inválidos */
+      message: string;
+      /** @example 2026-07-05T10:00:00.000Z */
+      timestamp: string;
+      /** @example /auth/login */
+      path: string;
+      /** @description Programmatic discriminator (e.g. emailNotVerified) */
+      code?: string;
+      /** @description Present for emailNotVerified flows */
+      email?: string;
+    };
+  };
+  responses: never;
+  parameters: never;
+  requestBodies: never;
+  headers: never;
+  pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    staff_StaffAuthController_login: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StaffLoginDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TokenResponseDto"];
-                };
-            };
-        };
+  staff_StaffAuthController_login: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    staff_StaffAuthController_refresh: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StaffRefreshDto"];
-            };
-        };
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TokenResponseDto"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["StaffLoginDto"];
+      };
     };
-    staff_StaffAuthController_logout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["StaffLogoutDto"];
-            };
+        content: {
+          "application/json": components["schemas"]["TokenResponseDto"];
         };
-        responses: {
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+      };
     };
-    staff_StaffAuthController_me: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StaffProfileResponseDto"];
-                };
-            };
-        };
+  };
+  staff_StaffAuthController_refresh: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    staff_StaffAuthController_opsCheck: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["StaffRefreshDto"];
+      };
     };
-    staff_StaffTransactionsController_list: {
-        parameters: {
-            query?: {
-                status?: "proposta" | "rejeitada" | "proposta_expirada" | "a_aguardar_pagamento_comprador" | "comprador_pagou_pendente_ops" | "escrow_confirmado" | "vendedor_enviou_pendente" | "comprador_confirmou_rececao" | "payout_pendente" | "concluida" | "cancelada" | "disputa";
-                /** @description Inclusive start date (YYYY-MM-DD) */
-                from?: string;
-                /** @description Inclusive end date (YYYY-MM-DD) */
-                to?: string;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransactionSummaryDto"][];
-                };
-            };
+        content: {
+          "application/json": components["schemas"]["TokenResponseDto"];
         };
+      };
     };
-    staff_StaffTransactionsController_findById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["StaffTransactionDetailDto"];
-                };
-            };
-        };
+  };
+  staff_StaffAuthController_logout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
-    staff_StaffTransactionsController_confirmEscrow: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransactionSummaryDto"];
-                };
-            };
-        };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["StaffLogoutDto"];
+      };
     };
-    staff_StaffTransactionsController_markPayout: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
+    responses: {
+      204: {
+        headers: {
+          [name: string]: unknown;
         };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TransactionSummaryDto"];
-                };
-            };
-        };
+        content?: never;
+      };
     };
-    staff_StaffTransactionsController_comprovativoReadUrl: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                transactionId: string;
-                uploadId: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": {
-                        readUrl: string;
-                    };
-                };
-            };
-        };
+  };
+  staff_StaffAuthController_me: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
     };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StaffProfileResponseDto"];
+        };
+      };
+    };
+  };
+  staff_StaffAuthController_opsCheck: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+    };
+  };
+  staff_StaffTransactionsController_list: {
+    parameters: {
+      query?: {
+        status?:
+          | "proposta"
+          | "rejeitada"
+          | "proposta_expirada"
+          | "a_aguardar_pagamento_comprador"
+          | "comprador_pagou_pendente_ops"
+          | "escrow_confirmado"
+          | "vendedor_enviou_pendente"
+          | "comprador_confirmou_rececao"
+          | "payout_pendente"
+          | "concluida"
+          | "cancelada"
+          | "disputa";
+        /** @description Inclusive start date (YYYY-MM-DD) */
+        from?: string;
+        /** @description Inclusive end date (YYYY-MM-DD) */
+        to?: string;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TransactionSummaryDto"][];
+        };
+      };
+    };
+  };
+  staff_StaffTransactionsController_findById: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["StaffTransactionDetailDto"];
+        };
+      };
+    };
+  };
+  staff_StaffTransactionsController_confirmEscrow: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TransactionSummaryDto"];
+        };
+      };
+    };
+  };
+  staff_StaffTransactionsController_markPayout: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TransactionSummaryDto"];
+        };
+      };
+    };
+  };
+  staff_StaffTransactionsController_comprovativoReadUrl: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        transactionId: string;
+        uploadId: string;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": {
+            readUrl: string;
+          };
+        };
+      };
+    };
+  };
 }

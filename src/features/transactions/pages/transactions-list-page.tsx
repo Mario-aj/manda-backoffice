@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import { fetchStaffTransactions } from "@/features/transactions/api/transactions";
+import { formatTransactionOpenedAt } from "@/features/transactions/format-transaction-opened-at";
 import { ApiError } from "@/shared/api/api-error";
 import type { TransactionSummaryDto } from "@/features/transactions/api/transactions";
 import styles from "./transactions.module.css";
@@ -68,17 +69,15 @@ function formatAmount(value: number): string {
   return value.toLocaleString("pt-PT");
 }
 
-function formatWhen(_tx: TransactionSummaryDto): string {
-  const label = BADGE_MAP[_tx.status]?.label ?? _tx.status;
-  if (
-    label === "Concluída" ||
-    label === "Cancelada" ||
-    label === "Rejeitada" ||
-    label === "Proposta expirada"
-  ) {
+function formatWhen(tx: TransactionSummaryDto): string {
+  if (!tx.createdAt) {
     return "—";
   }
-  return "—";
+  return formatTransactionOpenedAt(tx.createdAt);
+}
+
+function participantName(name: string | undefined): string {
+  return name?.trim() ? name : "—";
 }
 
 const CHIP_DEFS: Omit<ChipDef, "count">[] = [
@@ -152,7 +151,8 @@ export function TransactionsListPage() {
   const filteredTx = useMemo(
     () =>
       txData.filter(
-        chipDefsWithCount.find((c) => c.key === activeChip)?.match ?? (() => true)
+        chipDefsWithCount.find((c) => c.key === activeChip)?.match ??
+          (() => true)
       ),
     [txData, activeChip, chipDefsWithCount]
   );
@@ -167,7 +167,13 @@ export function TransactionsListPage() {
           const classes = [
             styles.chip,
             active ? styles.chipActive : "",
-            chip.tone && active ? styles[`chipTone${chip.tone.charAt(0).toUpperCase() + chip.tone.slice(1)}` as keyof typeof styles] : "",
+            chip.tone && active
+              ? styles[
+                  `chipTone${
+                    chip.tone.charAt(0).toUpperCase() + chip.tone.slice(1)
+                  }` as keyof typeof styles
+                ]
+              : "",
           ]
             .filter(Boolean)
             .join(" ");
@@ -200,9 +206,7 @@ export function TransactionsListPage() {
         {query.isPending ? (
           <div className={styles.empty}>A carregar…</div>
         ) : !txData.length ? (
-          <div className={styles.empty}>
-            Nenhuma transação encontrada.
-          </div>
+          <div className={styles.empty}>Nenhuma transação encontrada.</div>
         ) : (
           <>
             <div className={styles.tableHead}>
@@ -223,10 +227,10 @@ export function TransactionsListPage() {
                 tx.status === "disputa"
                   ? styles.rowHighlightDanger
                   : tx.status === "comprador_pagou_pendente_ops" ||
-                      tx.status === "a_aguardar_pagamento_comprador" ||
-                      tx.status === "payout_pendente"
-                    ? styles.rowHighlightWarn
-                    : undefined;
+                    tx.status === "a_aguardar_pagamento_comprador" ||
+                    tx.status === "payout_pendente"
+                  ? styles.rowHighlightWarn
+                  : undefined;
 
               return (
                 <div
@@ -235,8 +239,12 @@ export function TransactionsListPage() {
                   onClick={() => navigate(`/transactions/${tx.id}`)}
                 >
                   <div className={styles.colRef}>{tx.refCode}</div>
-                  <div className={styles.colName}>—</div>
-                  <div className={styles.colName}>—</div>
+                  <div className={styles.colName}>
+                    {participantName(tx.buyerFullName)}
+                  </div>
+                  <div className={styles.colName}>
+                    {participantName(tx.sellerFullName)}
+                  </div>
                   <div className={styles.colAmount}>
                     {formatAmount(tx.buyerPaysKz)}
                   </div>
@@ -244,7 +252,14 @@ export function TransactionsListPage() {
                     <span
                       className={[
                         styles.badge,
-                        badge ? styles[`badge${badge.tone.charAt(0).toUpperCase() + badge.tone.slice(1)}` as keyof typeof styles] : "",
+                        badge
+                          ? styles[
+                              `badge${
+                                badge.tone.charAt(0).toUpperCase() +
+                                badge.tone.slice(1)
+                              }` as keyof typeof styles
+                            ]
+                          : "",
                       ]
                         .filter(Boolean)
                         .join(" ")}
@@ -260,8 +275,8 @@ export function TransactionsListPage() {
                       who === "Manda"
                         ? styles.colWhoManda
                         : who === "Utilizador"
-                          ? styles.colWhoUser
-                          : styles.colWhoNone,
+                        ? styles.colWhoUser
+                        : styles.colWhoNone,
                     ]
                       .filter(Boolean)
                       .join(" ")}
