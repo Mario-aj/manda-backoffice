@@ -1,6 +1,19 @@
 # Manda Backoffice — Agent context
 
-> **Canonical Cursor config:** `.cursor/` in this directory. Workspace-global rules: `../AGENTS.md` (monorepo root).
+> Workspace-global rules live in `../AGENTS.md` (monorepo root) and are always loaded. This file adds backoffice-only context and imports the rule files below.
+
+## Imported context
+
+- @.agents/rules/behavioral-guidelines.md — security-first coding posture (always apply).
+- @.agents/rules/architecture.md — full ADR: stack, layout, staff auth, API, styling.
+- @.agents/rules/reuse-before-create.md — search and reuse before adding components/hooks.
+
+## Skills (.agents/skills/)
+
+| Skill                           | Use when                                                      |
+| ------------------------------- | ------------------------------------------------------------- |
+| `claude-design-implementation/` | Implementing UI from the prototype in `tmp/manda/` (no Figma) |
+| `figma-design-implementation/`  | User provides a Figma URL or asks to implement from Figma MCP |
 
 ## What this project is
 
@@ -14,15 +27,6 @@
 | Data      | TanStack Query v5 + axios (`/staff/*` only)   |
 | Tokens    | Electron `safeStorage` via preload IPC        |
 | API types | Generated from `manda/openapi/staff-api.json` |
-
-## Where to edit
-
-| What                       | Location                         |
-| -------------------------- | -------------------------------- |
-| Always-on rules            | `.cursor/rules/*.mdc`            |
-| Architecture (file-scoped) | `.cursor/rules/architecture.mdc` |
-| Skills                     | `.cursor/skills/*/SKILL.md`      |
-| `.agents/` copies          | **Stubs only** — edit `.cursor/` |
 
 ## Current features
 

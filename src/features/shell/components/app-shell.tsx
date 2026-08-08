@@ -1,6 +1,7 @@
 import { Outlet } from "react-router-dom";
 import { Sidebar } from "@/features/shell/components/sidebar";
 import { Topbar } from "@/features/shell/components/topbar";
+import { useTransactionEvents } from "@/features/transactions/api/use-transaction-events";
 import styles from "./app-shell.module.css";
 
 type AppShellProps = {
@@ -8,6 +9,8 @@ type AppShellProps = {
 };
 
 export function AppShell({ title = "Início" }: AppShellProps) {
+  useTransactionEvents();
+
   return (
     <div className={styles.shell}>
       <Sidebar />

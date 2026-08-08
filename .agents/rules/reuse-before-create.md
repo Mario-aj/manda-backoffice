@@ -1,8 +1,3 @@
----
-description: Search the backoffice codebase and reuse existing abstractions before adding new ones
-alwaysApply: true
----
-
 # Reuse Before Create
 
 Before adding a component, hook, utility, or helper, **search this project first**. Extend or reuse what exists — do not copy patterns from `manda-app/`.

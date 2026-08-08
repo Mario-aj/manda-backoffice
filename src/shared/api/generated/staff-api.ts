@@ -84,6 +84,22 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/staff/transactions/events": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["staff_StaffTransactionsController_events"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/staff/transactions": {
     parameters: {
       query?: never;
@@ -279,6 +295,10 @@ export interface components {
       paymentExpiresAt?: string | null;
       /** Format: uuid */
       conversationId?: string;
+      /** @example 50 */
+      buyerFeeBps: number;
+      /** @example 50 */
+      sellerFeeBps: number;
       companyBankSnapshot?: components["schemas"]["CompanyBankSnapshotDto"];
     };
     ComprovativoSummaryDto: {
@@ -359,6 +379,10 @@ export interface components {
       paymentExpiresAt?: string | null;
       /** Format: uuid */
       conversationId?: string;
+      /** @example 50 */
+      buyerFeeBps: number;
+      /** @example 50 */
+      sellerFeeBps: number;
       companyBankSnapshot?: components["schemas"]["CompanyBankSnapshotDto"];
       comprovativos: components["schemas"]["ComprovativoSummaryDto"][];
     };
@@ -487,6 +511,26 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  staff_StaffTransactionsController_events: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Server-Sent Events stream of transaction.updated events */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": string;
+        };
       };
     };
   };
